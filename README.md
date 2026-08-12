@@ -4,7 +4,7 @@ Repositori ini digunakan untuk **pengumpulan Final Project Mobile Development**.
 
 ## Sistem Pengumpulan
 
-- **Metode pengumpulan**: lakukan **fork** repository ini, lalu kerjakan tugas pada repository hasil fork.
+- **Metode pengumpulan**: lakukan **fork** repository ini, lalu kerjakan project pada repository hasil fork.
 - **Deadline**: **TBA**
 
 ---
