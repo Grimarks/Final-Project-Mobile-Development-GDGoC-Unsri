@@ -9,7 +9,7 @@ Repositori ini digunakan untuk **pengumpulan Final Project Mobile Development**.
 
 ---
 
-**📋 Syarat & Ketentuan Final Project Mobile Development**
+## Syarat & Ketentuan Final Project Mobile Development
 
 1. Kalian dibebaskan untuk menggunakan framework mobile apa pun (Flutter, Kotlin, Swift, React Native) dan arsitektur *state management* pilihan kalian. Pilih alat yang membuat kalian merasa nyaman dan produktif.
 2. Aplikasi mobile tidak boleh berdiri sendiri secara lokal. Harus terhubung ke backend untuk manajemen data. Kalian bebas menggunakan BaaS (seperti Firebase/Supabase) atau membangun REST API/GraphQL sendiri. Kode backend wajib disertakan dalam pengumpulan.
