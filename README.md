@@ -5,7 +5,7 @@ Repositori ini digunakan untuk **pengumpulan Final Project Mobile Development**.
 ## Sistem Pengumpulan
 
 - **Metode pengumpulan**: lakukan **fork** repository ini, lalu kerjakan project pada repository hasil fork.
-- **Deadline**: **TBA**
+- **Deadline**: **26 September 2026**
 
 ---
 
