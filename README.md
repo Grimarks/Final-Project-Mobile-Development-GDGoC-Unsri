@@ -16,7 +16,7 @@ Repositori ini digunakan untuk **pengumpulan Final Project Mobile Development**.
 3. Aplikasi harus memiliki setidaknya satu fitur yang memanfaatkan Kecerdasan Buatan (AI) atau Machine Learning (ML). 
    * *Catatan:* Model tidak harus memiliki akurasi yang sempurna/tinggi, yang diutamakan adalah **fungsionalitas** dan **cara integrasinya** ke dalam aplikasi mobile. 
    * Kalian bebas menggunakan layanan siap pakai (seperti Google ML Kit, OpenAI API), model on-device (TensorFlow Lite), atau melakukan *training* model sendiri (misal: CNN/YOLO) yang di-deploy di backend kalian.
-4. Proyek wajib menyertakan skrip *testing* otomatis (Unit Test, Widget/UI Test, atau Integration Test). Buktikan bahwa komponen inti aplikasi kalian berjalan sesuai harapan sebelum di-deploy.
+4. Proyek wajib menyertakan skrip *testing* otomatis (Unit Test, Widget/UI Test, dan Integration Test). Buktikan bahwa komponen inti aplikasi kalian berjalan sesuai harapan sebelum di-deploy.
 5. Keamanan jaringan, data, atau aplikasi bukan syarat lulus wajib, namun implementasi *best practices* (seperti autentikasi JWT, enkripsi password/data, validasi input, dll.) akan memberikan poin plus yang signifikan pada nilai akhir.
 6. Repository hasil fork wajib memiliki **README baru** yang menjelaskan proyek masing-masing, README proyek harus berisi **cara menjalankan aplikasi, versi dan dependensi yang dipakai, fitur yang tersedia, Informasi endpoint API atau dokumentasi backend, dan hasil testing**
 7. Tema aplikasi **dibebaskan**, namun **seberapa menarik tema** akan berpengaruh ke **penilaian**
