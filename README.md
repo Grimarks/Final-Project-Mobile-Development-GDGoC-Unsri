@@ -443,9 +443,3 @@ Yang belum, dan sadar belum:
 - Belum ada blacklist refresh token saat logout (logout hanya menghapus token di client)
 
 ---
-
-## 10. Yang belum dibangun
-
-- Item keamanan yang belum dikerjakan — lihat §9
-- Chat AI bebas atas isi materi (bukan cuma ringkasan/kuis), re-ranking prioritas
-  berbasis feedback sesi, kalender kampus penuh
