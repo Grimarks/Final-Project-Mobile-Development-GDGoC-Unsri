@@ -409,8 +409,6 @@ Semua ada di folder [`screenshots/`](screenshots/), diambil langsung dari app (a
 │   └── test/               # 73 test, lihat §6.2
 ├── screenshots/            # screenshot tiap layar (pakai akun test2@gmail.com) + hasil testing
 ├── design/                 # mockup HTML desain
-├── Design.md
-├── Architecture.md
 └── README.md
 ```
 
@@ -449,5 +447,5 @@ Yang belum, dan sadar belum:
 ## 10. Yang belum dibangun
 
 - Item keamanan yang belum dikerjakan — lihat §9
-- Tier 3 dari `Design.md` §6: chat AI bebas atas isi materi (bukan cuma ringkasan/kuis),
-  re-ranking prioritas berbasis feedback sesi, kalender kampus penuh
+- Chat AI bebas atas isi materi (bukan cuma ringkasan/kuis), re-ranking prioritas
+  berbasis feedback sesi, kalender kampus penuh
