@@ -1,0 +1,26 @@
+# Local checkpoints/backups — never pushed to GitHub
+checkpoint-2026-08-21/
+
+# Python (backend/)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.db
+backend/uploads/
+.env
+
+# Flutter (mobile/) — mobile/ juga punya .gitignore sendiri (ios/, android/,
+# .dart_tool/, build/, dst.) yang dibawa Flutter pas project di-create
+ios/Pods/
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+
+.claude/settings.local.json
+.claude/settings.json
+.claude/scheduled_tasks.lock
+graphify-out/

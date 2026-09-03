@@ -1,0 +1,124 @@
+00:00 +0: loading /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/chat_controller_test.dart                                  
+00:00 +0: ... confirmCandidatesAndGenerate invalidates courseListProvider, not just taskListProvider                                                                                                   
+00:00 +1: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/study_streak_test.dart: kosong -> streak 0                         
+00:00 +2: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/study_streak_test.dart: kosong -> streak 0                         
+00:00 +2: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/study_streak_test.dart: sesi tidak completed tidak dihitung        
+00:00 +3: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/study_streak_test.dart: sesi tidak completed tidak dihitung        
+00:00 +3: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/study_streak_test.dart: belajar hari ini saja -> streak 1          
+00:00 +4: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/study_streak_test.dart: belajar hari ini saja -> streak 1          
+00:00 +4: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/study_streak_test.dart: ... sampai hari ini -> streak 3            
+00:00 +5: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/study_streak_test.dart: ... sampai hari ini -> streak 3            
+00:00 +5: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/study_streak_test.dart: ... jalan -> tetap dihitung dari kemarin   
+00:00 +6: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/study_streak_test.dart: ... jalan -> tetap dihitung dari kemarin   
+00:00 +6: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/study_streak_test.dart: ... -> streak putus, cuma hitung hari ini  
+00:00 +7: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/study_streak_test.dart: ... -> streak putus, cuma hitung hari ini  
+00:00 +7: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/study_streak_test.dart: ... hari ini maupun kemarin -> streak 0    
+00:00 +8: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/study_streak_test.dart: ... hari ini maupun kemarin -> streak 0    
+00:00 +8: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/study_streak_test.dart: ... hari yang sama tetap dihitung satu hari
+00:00 +9: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/study_streak_test.dart: ... hari yang sama tetap dihitung satu hari
+00:00 +9: loading /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/task_candidate_model_test.dart                             
+00:00 +9: ... TaskCandidate fromJson mengurai course, title, type, difficulty                                                                                                                          
+00:00 +10: ... TaskCandidate fromJson mengurai course, title, type, difficulty                                                                                                                         
+00:00 +10: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/task_candidate_model_test.dart: ... sebagai UTC, bukan local time 
+00:00 +11: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/task_candidate_model_test.dart: ... sebagai UTC, bukan local time 
+00:00 +11: ... TaskCandidate toJson mengirim due_date UTC dengan akhiran Z, tanggal tidak bergeser                                                                                                     
+00:00 +12: ... TaskCandidate toJson mengirim due_date UTC dengan akhiran Z, tanggal tidak bergeser                                                                                                     
+00:00 +12: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/task_candidate_model_test.dart: ... kalau tidak ada di JSON       
+00:00 +13: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/task_candidate_model_test.dart: ... kalau tidak ada di JSON       
+00:00 +13: loading /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/material_model_test.dart                                  
+00:00 +13: ... MaterialItem fromJson mengurai seluruh field                                                                                                                                            
+00:00 +14: ... MaterialItem fromJson mengurai seluruh field                                                                                                                                            
+00:00 +14: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/material_model_test.dart: ... kalau text_length 0 (PDF hasil scan)
+00:00 +15: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/material_model_test.dart: ... kalau text_length 0 (PDF hasil scan)
+00:00 +15: ... MaterialSummary fromJson mengurai summary dan key_points                                                                                                                                
+00:00 +16: ... MaterialSummary fromJson mengurai summary dan key_points                                                                                                                                
+00:00 +16: ... MaterialQuiz fromJson mengurai daftar pertanyaan                                                                                                                                        
+00:00 +17: ... MaterialQuiz fromJson mengurai daftar pertanyaan                                                                                                                                        
+00:01 +17: ... MaterialQuiz fromJson mengurai daftar pertanyaan                                                                                                                                        
+00:01 +17: loading /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/biometric_setting_test.dart                               
+00:01 +17: ... toggle(true) gagal kalau perangkat tidak mendukung biometrik, tidak tersimpan                                                                                                           
+00:01 +18: ... toggle(true) gagal kalau perangkat tidak mendukung biometrik, tidak tersimpan                                                                                                           
+00:01 +18: ... toggle(true) gagal kalau verifikasi Face ID dibatalkan/gagal, tidak tersimpan                                                                                                           
+00:01 +19: ... toggle(true) gagal kalau verifikasi Face ID dibatalkan/gagal, tidak tersimpan                                                                                                           
+00:01 +19: ... toggle(true) sukses -> tersimpan; toggle(false) mematikan tanpa perlu verifikasi                                                                                                        
+00:01 +20: ... toggle(true) sukses -> tersimpan; toggle(false) mematikan tanpa perlu verifikasi                                                                                                        
+00:01 +20: loading /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/task_notification_test.dart                               
+00:01 +20: ... add() dengan due date menjadwalkan pengingat                                                                                                                                            
+00:01 +21: ... add() dengan due date menjadwalkan pengingat                                                                                                                                            
+00:01 +21: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/task_notification_test.dart: ... date tidak menjadwalkan apa pun  
+00:01 +22: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/task_notification_test.dart: ... date tidak menjadwalkan apa pun  
+00:01 +22: ... toggleDone ke done membatalkan pengingat task itu                                                                                                                                       
+00:01 +23: ... toggleDone ke done membatalkan pengingat task itu                                                                                                                                       
+00:01 +23: ... remove() membatalkan pengingat task itu                                                                                                                                                 
+00:01 +24: ... remove() membatalkan pengingat task itu                                                                                                                                                 
+00:01 +24: loading /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/chat_message_model_test.dart                              
+00:01 +24: ... ChatMessage fromJson mengurai role, content, dan created_at                                                                                                                             
+00:01 +25: ... ChatMessage fromJson mengurai role, content, dan created_at                                                                                                                             
+00:01 +25: ... ChatMessage isUser false untuk role assistant                                                                                                                                           
+00:01 +26: ... ChatMessage isUser false untuk role assistant                                                                                                                                           
+00:01 +26: ... ChatReply fromJson mengurai reply dan generated_by                                                                                                                                      
+00:01 +27: ... ChatReply fromJson mengurai reply dan generated_by                                                                                                                                      
+00:01 +27: loading /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/plan_model_test.dart                                      
+00:01 +27: ... StudyPlan.fromJson mengurai metadata dan blok                                                                                                                                           
+00:01 +28: ... StudyPlan.fromJson mengurai metadata dan blok                                                                                                                                           
+00:01 +28: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/plan_model_test.dart: PlanBlock menyusun label waktu dan warna    
+00:01 +29: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/plan_model_test.dart: PlanBlock menyusun label waktu dan warna    
+00:01 +29: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/plan_model_test.dart: ... kosong ketika tidak ada task terbuka    
+00:01 +30: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/plan_model_test.dart: ... kosong ketika tidak ada task terbuka    
+00:01 +30: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/plan_model_test.dart: ... plan baru saat penyesuaian berhasil     
+00:01 +31: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/plan_model_test.dart: ... plan baru saat penyesuaian berhasil     
+00:01 +31: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/plan_model_test.dart: ... plan lama + pesan error saat gagal      
+00:01 +32: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/plan_model_test.dart: ... plan lama + pesan error saat gagal      
+00:01 +32: loading /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/task_model_test.dart                                      
+00:01 +32: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/task_model_test.dart: ... seluruh field dari respons backend      
+00:01 +33: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/task_model_test.dart: ... seluruh field dari respons backend      
+00:01 +33: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/task_model_test.dart: ... task tanpa course dan tanpa deadline    
+00:01 +34: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/task_model_test.dart: ... task tanpa course dan tanpa deadline    
+00:01 +34: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/task_model_test.dart: dueLabel hari ini ditandai "Today"          
+00:01 +35: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/task_model_test.dart: dueLabel hari ini ditandai "Today"          
+00:01 +35: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/task_model_test.dart: dueLabel besok ditandai "Tomorrow"          
+00:01 +36: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/task_model_test.dart: dueLabel besok ditandai "Tomorrow"          
+00:01 +36: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/unit/task_model_test.dart: dueLabel yang sudah lewat ditandai "Overdue"
+00:01 +37: ... password lemah ditolak sebelum memanggil register()                                                                                                                                     
+00:01 +38: ... password lemah ditolak sebelum memanggil register()                                                                                                                                     
+00:01 +39: ... password lemah ditolak sebelum memanggil register()                                                                                                                                     
+00:01 +40: ... password lemah ditolak sebelum memanggil register()                                                                                                                                     
+00:02 +40: ... password lemah ditolak sebelum memanggil register()                                                                                                                                     
+00:02 +41: ... menampilkan panel review lalu confirm memicu confirmTasks + planFromChat                                                                                                                
+00:02 +42: ... menampilkan panel review lalu confirm memicu confirmTasks + planFromChat                                                                                                                
+00:02 +43: ... menampilkan panel review lalu confirm memicu confirmTasks + planFromChat                                                                                                                
+00:02 +44: ... menampilkan panel review lalu confirm memicu confirmTasks + planFromChat                                                                                                                
+00:02 +45: ... menampilkan panel review lalu confirm memicu confirmTasks + planFromChat                                                                                                                
+00:02 +46: ... menampilkan panel review lalu confirm memicu confirmTasks + planFromChat                                                                                                                
+00:02 +47: ... menampilkan panel review lalu confirm memicu confirmTasks + planFromChat                                                                                                                
+00:02 +48: ... menampilkan panel review lalu confirm memicu confirmTasks + planFromChat                                                                                                                
+00:02 +49: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/widget/task_card_test.dart: ... judul, mata kuliah, dan blok prioritas 
+00:02 +50: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/widget/task_card_test.dart: ... judul, mata kuliah, dan blok prioritas 
+00:02 +51: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/widget/task_card_test.dart: ... judul, mata kuliah, dan blok prioritas 
+00:02 +52: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/widget/task_card_test.dart: ... judul, mata kuliah, dan blok prioritas 
+00:02 +53: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/widget/task_card_test.dart: ... judul, mata kuliah, dan blok prioritas 
+00:02 +54: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/widget/task_card_test.dart: ... judul, mata kuliah, dan blok prioritas 
+00:02 +55: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/widget/task_card_test.dart: ... judul, mata kuliah, dan blok prioritas 
+00:02 +56: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/widget/task_card_test.dart: ... judul, mata kuliah, dan blok prioritas 
+00:02 +57: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/widget/task_card_test.dart: ... judul, mata kuliah, dan blok prioritas 
+00:02 +58: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/widget/task_card_test.dart: ... judul, mata kuliah, dan blok prioritas 
+00:02 +59: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/widget/task_card_test.dart: ... judul, mata kuliah, dan blok prioritas 
+00:02 +60: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/widget/task_card_test.dart: ... judul, mata kuliah, dan blok prioritas 
+00:02 +61: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/widget/task_card_test.dart: ... judul, mata kuliah, dan blok prioritas 
+00:02 +62: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/widget/task_card_test.dart: ... judul, mata kuliah, dan blok prioritas 
+00:02 +63: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/widget/task_card_test.dart: ... judul, mata kuliah, dan blok prioritas 
+00:02 +63: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/widget/task_card_test.dart: menampilkan jumlah task di header          
+00:02 +64: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/widget/task_card_test.dart: menampilkan jumlah task di header          
+00:02 +64: loading /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/widget/login_biometric_gate_test.dart                          
+00:02 +64: ... tanpa sesi tersimpan -> langsung form email/password biasa                                                                                                                              
+00:02 +65: ... tanpa sesi tersimpan -> langsung form email/password biasa                                                                                                                              
+00:02 +66: ... tanpa sesi tersimpan -> langsung form email/password biasa                                                                                                                              
+00:03 +66: ... tanpa sesi tersimpan -> langsung form email/password biasa                                                                                                                              
+00:03 +67: ... tap kartu adjust menampilkan form instruksi bebas                                                                                                                                       
+00:03 +68: ... tap kartu adjust menampilkan form instruksi bebas                                                                                                                                       
+00:03 +69: ... tap kartu adjust menampilkan form instruksi bebas                                                                                                                                       
+00:03 +70: ... "Use password instead" melewati gerbang ke form biasa                                                                                                                                   
+00:03 +71: ... "Use password instead" melewati gerbang ke form biasa                                                                                                                                   
+00:03 +72: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/widget/planner_choice_test.dart: ... manapun kembali ke 3 kartu pilihan
+00:03 +73: /Users/darrellsatriano/UNSRI/PROGRAM/Dart/Finpro/Final-Project-Mobile-Development-GDGoC-Unsri/campusflow/mobile/test/widget/planner_choice_test.dart: ... manapun kembali ke 3 kartu pilihan
+00:03 +73: All tests passed!                                                                                                                                                                           
