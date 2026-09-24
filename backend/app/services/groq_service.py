@@ -96,6 +96,10 @@ async def complete_text(
         "temperature": temperature,
         "max_tokens": max_tokens,
     }
+    # gpt-oss itu reasoning model, token "mikir"-nya ikut kepotong max_tokens.
+    # effort low biar chat cepet & jatahnya gak abis buat mikir doang
+    if settings.groq_model.startswith("openai/gpt-oss"):
+        payload["reasoning_effort"] = "low"
     headers = {"Authorization": f"Bearer {settings.groq_api_key}"}
 
     last_error: Exception | None = None

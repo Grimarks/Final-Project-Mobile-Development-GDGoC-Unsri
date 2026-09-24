@@ -15,14 +15,17 @@ Dibangun sebagai final project mata kuliah Mobile Development.
 | **Backend** | FastAPI (Python 3.11+) + SQLAlchemy 2.0 async + Alembic |
 | **Database** | PostgreSQL 15+ (SQLite untuk development) |
 | **Auth** | JWT access + refresh token, password di-hash bcrypt |
-| **Fitur AI** | Groq API (Llama 3.3 70B) — penyusun jadwal, ringkasan & kuis materi |
+| **Fitur AI** | Groq API (`openai/gpt-oss-120b`) — chat planner, penyusun jadwal, ringkasan & kuis materi |
+| **Platform** | iOS (iPhone) dan Android, satu codebase Flutter |
 | **Testing** | pytest (backend, 73 test), flutter_test unit+widget (mobile, 73 test), plus 1 integration test end-to-end — semuanya hijau |
 
 ### Fitur
 
 **Auth & profil:**
 - Register (password wajib kuat: huruf besar+kecil, angka, simbol) / login / refresh token
-- Login pakai Face ID di iPhone, sekali diaktifkan lewat tab Profile
+- Login biometrik: **Face ID** di iPhone, **sidik jari / face unlock** di Android —
+  diaktifkan sekali lewat tab Profile, lalu prompt biometrik muncul otomatis saat app dibuka
+- **Lock app** di Profile: kunci app tanpa logout, buka lagi cukup pakai biometrik
 - Edit nama, email, dan password dari Profile
 
 **Akademik:**
@@ -36,7 +39,9 @@ Dibangun sebagai final project mata kuliah Mobile Development.
 
 **Fokus & progres:**
 - Timer Pomodoro (dengan tombol fast-forward buat demo) + feedback pasca-sesi (easy / normal / hard)
-- Reminder lokal buat deadline tugas & sesi fokus yang selesai
+- Notifikasi lokal buat deadline tugas & sesi fokus yang selesai (tetap muncul walau
+  app di background; ikut dibatalkan/dijadwal ulang saat sesi di-pause atau task selesai)
+- Tombol *Send test notification* di Profile buat ngecek notifikasi jalan
 - Dashboard "Today's Focus" dengan statistik, study streak, dan banner AI
 - Haptic feedback di tombol-tombol utama
 
@@ -104,6 +109,41 @@ Backend harus sudah jalan lebih dulu. Alamatnya berbeda tergantung target:
 Untuk iPhone fisik, cari IP Mac dengan `ipconfig getifaddr en0`, dan pastikan
 backend dijalankan dengan `--host 0.0.0.0` supaya bisa diakses dari perangkat lain
 di jaringan yang sama.
+
+### 2.3 Menjalankan di HP fisik (iPhone & Android)
+
+HP dan laptop/Mac yang menjalankan backend **harus berada di jaringan yang sama**
+(Wi-Fi yang sama, atau laptop tersambung ke hotspot HP). Kabel hanya perlu saat
+memasang aplikasi; build *release* bisa dibuka dari home screen tanpa kabel.
+
+**Menyalakan backend (macOS):** klik 2x `backend/start-server.command` di Finder,
+atau jalankan `./start-server.command` dari folder `backend`. Jendela Terminal-nya
+jangan ditutup selama aplikasi dipakai.
+
+Pakai nama host Mac (`<nama-mac>.local`, cek dengan `scutil --get LocalHostName`)
+alih-alih IP, supaya aplikasi tetap tersambung walau pindah jaringan:
+
+| Platform | Build & pasang | Catatan |
+|---|---|---|
+| **iPhone** | `flutter run --release --dart-define=API_BASE_URL=http://<nama-mac>.local:8000` | Butuh Apple ID di Xcode (*Settings → Accounts*) dan Team di *Signing & Capabilities*. Di iPhone: nyalakan *Developer Mode*, lalu *Settings → General → VPN & Device Management → Trust*. Build dari Apple ID gratis berlaku 7 hari. |
+| **Android** | `flutter build apk --release --dart-define=API_BASE_URL=http://<nama-mac>.local:8000` | Hasil: `build/app/outputs/flutter-apk/app-release.apk`. Kirim APK ke HP lalu izinkan *Install unknown apps*. |
+
+**Ganti alamat server tanpa build ulang:** di layar login ada link **Server settings**.
+Isi `http://<IP-laptop>:8000` (IP dari `ipconfig getifaddr en0`) kalau HP tidak
+bisa menemukan `.local`, yang sering terjadi di Android. *Reset* mengembalikan ke
+alamat bawaan build.
+
+**Izin yang diminta aplikasi saat pertama dibuka:**
+
+| | iPhone | Android |
+|---|---|---|
+| Notifikasi | Popup izin iOS | Popup izin (Android 13+) |
+| Biometrik | Face ID (`NSFaceIDUsageDescription`) | Sidik jari / face unlock (`USE_BIOMETRIC`) |
+| Jaringan lokal | Popup *Local Network* — pilih **Allow** | Otomatis |
+
+Face unlock di Android hanya muncul kalau HP-nya punya face unlock kelas aman
+(biometric *strong*); kalau tidak, yang muncul sidik jari. Kalau biometrik belum
+didaftarkan di HP, toggle di Profile akan menampilkan pesan error dan tidak aktif.
 
 Alur mencoba: **Register** (log in lagi setelah sukses, tidak auto-login) → tab
 **Profile** → *+ Add course* → tab **Tasks** → tombol **+** untuk menambah tugas →

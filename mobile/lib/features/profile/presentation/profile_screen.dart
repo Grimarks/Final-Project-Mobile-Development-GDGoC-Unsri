@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/notifications/notification_service.dart';
 import '../../../core/theme/brutal_decorations.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/text_styles.dart';
@@ -170,7 +171,7 @@ class ProfileScreen extends ConsumerWidget {
                     child: Row(
                       children: [
                         Expanded(
-                          child: Text('Face ID login',
+                          child: Text('${biometricLabel()[0].toUpperCase()}${biometricLabel().substring(1)} login',
                               style: AppText.body(13.5, weight: FontWeight.w700)),
                         ),
                         biometric.when(
@@ -207,6 +208,33 @@ class ProfileScreen extends ConsumerWidget {
                         ),
                       ],
                     ),
+                  ),
+                  if (biometric.valueOrNull == true) ...[
+                    Container(height: 1, color: AppColors.ink.withOpacity(0.12)),
+                    _AccountRow(
+                      label: 'Lock app (unlock with ${biometricLabel()})',
+                      onTap: () => ref.read(authControllerProvider.notifier).lock(),
+                    ),
+                  ],
+                  Container(height: 1, color: AppColors.ink.withOpacity(0.12)),
+                  _AccountRow(
+                    label: 'Send test notification (5s)',
+                    onTap: () async {
+                      await ref
+                          .read(notificationServiceProvider)
+                          .scheduleTestNotification(const Duration(seconds: 5));
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context)
+                          ..hideCurrentSnackBar()
+                          ..showSnackBar(
+                            SnackBar(
+                              backgroundColor: AppColors.success,
+                              content: Text('Notification scheduled in 5 seconds.',
+                                  style: AppText.body(13, weight: FontWeight.w600)),
+                            ),
+                          );
+                      }
+                    },
                   ),
                   Container(height: 1, color: AppColors.ink.withOpacity(0.12)),
                   _AccountRow(

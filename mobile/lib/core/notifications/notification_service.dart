@@ -10,6 +10,7 @@ class NotificationService {
   bool _ready = false;
 
   static const _sessionNotificationId = 999999; // cuma 1 slot, sesi aktif kan cuma 1
+  static const _testNotificationId = 999998;
   static int _taskNotificationId(int taskId) => 100000 + taskId;
 
   Future<void> _ensureReady() async {
@@ -22,8 +23,16 @@ class NotificationService {
       requestSoundPermission: true,
     );
     await _plugin.initialize(const InitializationSettings(android: android, iOS: ios));
+    // Android 13+ gak otomatis nanya izin notif kayak iOS, mesti diminta manual
+    await _plugin
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        ?.requestNotificationsPermission();
     _ready = true;
   }
+
+  // dipanggil pas app start biar popup izin notif muncul di awal,
+  // bukan tiba2 pas lagi bikin task
+  Future<void> init() => _ensureReady();
 
   // TZDateTime.from pake instant absolut dari dateTime apa adanya, jadi tetep
   // bener walau tz.local belum ke-set ke zona asli device — gausah plugin tambahan
@@ -69,6 +78,23 @@ class NotificationService {
   }
 
   Future<void> cancelSessionEndReminder() => _plugin.cancel(_sessionNotificationId);
+
+  // tombol "test notification" di Profile, buat ngecek/demo notif tanpa nunggu deadline
+  Future<void> scheduleTestNotification(Duration after) async {
+    await _ensureReady();
+    await _plugin.zonedSchedule(
+      _testNotificationId,
+      'CampusFlow reminder',
+      'Notifications are working — you will be reminded before deadlines.',
+      _asTz(DateTime.now().add(after)),
+      const NotificationDetails(
+        android: AndroidNotificationDetails('test', 'Test notifications'),
+        iOS: DarwinNotificationDetails(),
+      ),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+    );
+  }
 }
 
 final notificationServiceProvider = Provider<NotificationService>((ref) => NotificationService());

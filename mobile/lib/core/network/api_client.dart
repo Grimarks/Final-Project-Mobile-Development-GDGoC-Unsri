@@ -64,6 +64,11 @@ final apiClientProvider = Provider<Dio>((ref) {
   dio.interceptors.add(
     InterceptorsWrapper(
       onRequest: (options, handler) async {
+        final serverUrl = await storage.readServerUrl();
+        if (serverUrl != null) {
+          options.baseUrl = serverUrl;
+          dio.options.baseUrl = serverUrl; // biar refresh token ikut ke server yg sama
+        }
         final token = await storage.readAccessToken();
         if (token != null) {
           options.headers['Authorization'] = 'Bearer $token';

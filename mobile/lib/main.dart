@@ -2,13 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/network/local_cache.dart';
+import 'core/notifications/notification_service.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await LocalCache.init(); // buka box Hive sebelum widget pertama dibangun
-  runApp(const ProviderScope(child: CampusFlowApp()));
+  final container = ProviderContainer();
+  // minta izin notif sekali di awal, gak di-await biar gak nahan frame pertama
+  container.read(notificationServiceProvider).init();
+  runApp(UncontrolledProviderScope(container: container, child: const CampusFlowApp()));
 }
 
 class CampusFlowApp extends ConsumerWidget {

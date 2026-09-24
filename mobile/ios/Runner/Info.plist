@@ -41,6 +41,15 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>CampusFlow connects to the CampusFlow server on your local network.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>CampusFlow uses Face ID to unlock the app quickly instead of typing your password.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>

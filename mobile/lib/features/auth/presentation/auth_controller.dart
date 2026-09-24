@@ -39,6 +39,11 @@ class AuthController extends AsyncNotifier<AppUser?> {
     return true;
   }
 
+  // kunci app tanpa hapus token -> balik ke /login yg nampilin gerbang Face ID
+  void lock() {
+    state = const AsyncValue.data(null);
+  }
+
   Future<void> logout() async {
     await ref.read(authRepositoryProvider).logout();
     state = const AsyncValue.data(null);

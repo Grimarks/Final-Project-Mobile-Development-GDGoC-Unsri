@@ -1,7 +1,13 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_auth/local_auth.dart';
 
 import '../../../core/network/api_client.dart';
+
+// nama biometrik buat teks UI: iPhone pake Face ID, Android bisa sidik jari /
+// face unlock tergantung hp-nya, jadi disebut umum aja
+String biometricLabel() =>
+    defaultTargetPlatform == TargetPlatform.iOS ? 'Face ID' : 'biometrics';
 
 // wrapper tipis buat local_auth, cuma di sini yg nyentuh Face ID/Touch ID
 // langsung biar gampang di-fake pas testing
@@ -40,13 +46,14 @@ class BiometricSetting extends AsyncNotifier<bool> {
     if (value) {
       final supported = await ref.read(biometricServiceProvider).isSupported();
       if (!supported) {
-        throw Exception('Face ID/Touch ID tidak tersedia di perangkat ini');
+        throw Exception(
+            'Biometrik (Face ID/sidik jari) belum tersedia atau belum didaftarkan di perangkat ini');
       }
       final confirmed = await ref.read(biometricServiceProvider).authenticate(
-            reason: 'Konfirmasi untuk mengaktifkan login Face ID',
+            reason: 'Konfirmasi untuk mengaktifkan login ${biometricLabel()}',
           );
       if (!confirmed) {
-        throw Exception('Verifikasi Face ID dibatalkan atau gagal');
+        throw Exception('Verifikasi ${biometricLabel()} dibatalkan atau gagal');
       }
     }
     await ref.read(tokenStorageProvider).setBiometricEnabled(value);

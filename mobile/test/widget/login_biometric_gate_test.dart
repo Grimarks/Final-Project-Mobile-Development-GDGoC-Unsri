@@ -1,3 +1,4 @@
+import 'package:campusflow/features/auth/presentation/biometric_controller.dart';
 import 'package:campusflow/features/auth/presentation/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,8 +7,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// Gerbang Face ID hanya muncul kalau ADA sesi tersimpan DAN user pernah
 /// mengaktifkan Face ID dari Profile — bukan default, dan bisa dilewati manual.
+// gerbang langsung manggil Face ID pas muncul, di test dianggap user batalin
+class _CancelledBiometric extends BiometricService {
+  @override
+  Future<bool> authenticate({required String reason}) async => false;
+}
+
 void main() {
-  Widget wrap() => const ProviderScope(child: MaterialApp(home: LoginScreen()));
+  Widget wrap() => ProviderScope(
+        overrides: [biometricServiceProvider.overrideWithValue(_CancelledBiometric())],
+        child: const MaterialApp(home: LoginScreen()),
+      );
 
   testWidgets('tanpa sesi tersimpan -> langsung form email/password biasa', (tester) async {
     SharedPreferences.setMockInitialValues({});
@@ -40,7 +50,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Welcome back'), findsOneWidget);
-    expect(find.text('UNLOCK WITH FACE ID'), findsOneWidget);
+    expect(find.text('UNLOCK WITH ${biometricLabel().toUpperCase()}'), findsOneWidget);
     expect(find.text('EMAIL'), findsNothing);
   });
 

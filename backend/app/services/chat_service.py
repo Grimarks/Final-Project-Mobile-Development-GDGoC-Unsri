@@ -20,7 +20,7 @@ SYSTEM_PROMPT = (
     "sendiri. JANGAN PERNAH menyusun, mencontohkan, atau menulis draf jadwal/blok "
     "waktu/tabel/daftar bernomor di sini — penyusunan jadwal sungguhan terjadi di fitur "
     "terpisah setelah mahasiswa menekan tombol \"Generate plan\", bukan tugasmu di "
-    "percakapan ini. Balas SANGAT singkat (maksimal 2 kalimat pendek), hangat, dan ajukan "
+    "percakapan ini. Tulis teks polos tanpa markdown (tanpa tanda bintang). Balas SANGAT singkat (maksimal 2 kalimat pendek), hangat, dan ajukan "
     "satu pertanyaan lanjutan yang relevan bila informasinya belum cukup — utamakan "
     "menanyakan mata kuliah & tugas konkret dulu kalau itu yang belum jelas. Kalau "
     "informasinya sudah cukup, cukup bilang begitu dan arahkan mahasiswa menekan tombol "
@@ -57,7 +57,8 @@ def _clip(text: str) -> str:
 async def reply_to(history: list[ChatMessage]) -> tuple[str, str]:
     """`history` udah termasuk pesan user terbaru, urut waktu. Balikin (reply, generated_by)."""
     try:
-        text = await complete_text(_to_groq_messages(history), max_tokens=200)
+        # jatah longgar krn token reasoning ikut diitung, panjang balasan tetep dijaga _clip()
+        text = await complete_text(_to_groq_messages(history), max_tokens=1024)
         if not text:
             raise ValueError("Groq mengembalikan balasan kosong")
         return _clip(text), "groq"

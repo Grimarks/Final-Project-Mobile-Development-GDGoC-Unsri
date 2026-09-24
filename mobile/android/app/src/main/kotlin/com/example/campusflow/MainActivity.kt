@@ -1,5 +1,6 @@
 package com.example.campusflow
 
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 
-class MainActivity : FlutterActivity()
+// local_auth (fingerprint/face unlock) wajib FragmentActivity biar dialog biometriknya bisa muncul
+class MainActivity : FlutterFragmentActivity()

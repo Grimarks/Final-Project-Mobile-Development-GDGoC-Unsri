@@ -7,6 +7,7 @@ class TokenStorage {
   static const _accessKey = 'cf_access_token';
   static const _refreshKey = 'cf_refresh_token';
   static const _biometricKey = 'cf_biometric_enabled';
+  static const _serverUrlKey = 'cf_server_url';
 
   Future<void> saveTokens({required String access, required String refresh}) async {
     final prefs = await SharedPreferences.getInstance();
@@ -34,4 +35,18 @@ class TokenStorage {
 
   Future<bool> isBiometricEnabled() async =>
       (await SharedPreferences.getInstance()).getBool(_biometricKey) ?? false;
+
+  // alamat backend yg diisi manual dari layar login (buat hp teman / ganti
+  // jaringan tanpa build ulang). null = pake bawaan build
+  Future<String?> readServerUrl() async =>
+      (await SharedPreferences.getInstance()).getString(_serverUrlKey);
+
+  Future<void> setServerUrl(String? url) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (url == null || url.isEmpty) {
+      await prefs.remove(_serverUrlKey);
+    } else {
+      await prefs.setString(_serverUrlKey, url);
+    }
+  }
 }

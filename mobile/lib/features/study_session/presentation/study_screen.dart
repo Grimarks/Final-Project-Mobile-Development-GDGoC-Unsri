@@ -94,10 +94,15 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
   void _pause() {
     _timer?.cancel();
     setState(() => _running = false);
+    // lagi di-pause, jangan sampe notif "sesi kelar" nongol duluan
+    ref.read(notificationServiceProvider).cancelSessionEndReminder();
   }
 
   void _resume() {
     setState(() => _running = true);
+    ref
+        .read(notificationServiceProvider)
+        .scheduleSessionEndReminder(Duration(seconds: _remaining));
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_remaining <= 1) {
         timer.cancel();
@@ -130,6 +135,12 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
       _finish();
     } else {
       setState(() => _remaining = next);
+      if (_running) {
+        // jadwal notif ikut dimajuin biar sesuai sisa waktu
+        ref
+            .read(notificationServiceProvider)
+            .scheduleSessionEndReminder(Duration(seconds: _remaining));
+      }
     }
   }
 

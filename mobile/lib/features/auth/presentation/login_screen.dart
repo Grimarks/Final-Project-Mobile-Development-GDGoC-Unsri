@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/network/api_client.dart';
 import '../../../core/theme/brutal_decorations.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/text_styles.dart';
@@ -205,8 +207,87 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                 ),
               ),
+              const SizedBox(height: 28),
+              Center(
+                child: GestureDetector(
+                  onTap: () => showDialog<void>(
+                    context: context,
+                    builder: (_) => const _ServerDialog(),
+                  ),
+                  child: Text(
+                    'Server settings',
+                    style: AppText.body(12, color: AppColors.inkMuted(0.5))
+                        .copyWith(decoration: TextDecoration.underline),
+                  ),
+                ),
+              ),
             ],
           ),
+    );
+  }
+}
+
+// ganti alamat backend tanpa build ulang, misal hp teman / pindah ke hotspot
+class _ServerDialog extends ConsumerStatefulWidget {
+  const _ServerDialog();
+
+  @override
+  ConsumerState<_ServerDialog> createState() => _ServerDialogState();
+}
+
+class _ServerDialogState extends ConsumerState<_ServerDialog> {
+  final _url = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    ref.read(tokenStorageProvider).readServerUrl().then((saved) {
+      if (mounted) _url.text = saved ?? defaultBaseUrl();
+    });
+  }
+
+  @override
+  void dispose() {
+    _url.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save(String? url) async {
+    await ref.read(tokenStorageProvider).setServerUrl(url);
+    if (mounted) Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Server address', style: AppText.display(17)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          BrutalTextField(
+            label: 'Backend URL',
+            controller: _url,
+            hint: 'http://192.168.1.5:8000',
+            keyboardType: TextInputType.url,
+          ),
+          const SizedBox(height: 8),
+          Text('Default: ${defaultBaseUrl()}',
+              style: AppText.body(11.5, color: AppColors.inkMuted(0.6))),
+        ],
+      ),
+      actions: [
+        TextButton(onPressed: () => _save(null), child: const Text('Reset')),
+        TextButton(
+          onPressed: () {
+            var url = _url.text.trim();
+            if (url.endsWith('/')) url = url.substring(0, url.length - 1);
+            if (url.isNotEmpty && !url.startsWith('http')) url = 'http://$url';
+            _save(url);
+          },
+          child: const Text('Save'),
+        ),
+      ],
     );
   }
 }
@@ -224,7 +305,17 @@ class _BiometricGateView extends ConsumerStatefulWidget {
 class _BiometricGateViewState extends ConsumerState<_BiometricGateView> {
   bool _authenticating = false;
 
+  @override
+  void initState() {
+    super.initState();
+    // langsung munculin prompt Face ID begitu gerbang tampil, kayak app bank
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _unlock();
+    });
+  }
+
   Future<void> _unlock() async {
+    if (_authenticating) return;
     setState(() => _authenticating = true);
     final ok =
         await ref.read(biometricServiceProvider).authenticate(reason: 'Buka CampusFlow');
@@ -276,17 +367,22 @@ class _BiometricGateViewState extends ConsumerState<_BiometricGateView> {
             height: 84,
             alignment: Alignment.center,
             decoration: Brutal.box(fill: AppColors.accent),
-            child: const Icon(Icons.face_retouching_natural, size: 40, color: AppColors.ink),
+            child: Icon(
+                defaultTargetPlatform == TargetPlatform.iOS
+                    ? Icons.face_retouching_natural
+                    : Icons.fingerprint,
+                size: 40,
+                color: AppColors.ink),
           ),
           const SizedBox(height: 22),
           Text('Welcome back', style: AppText.display(19)),
           const SizedBox(height: 8),
-          Text('Unlock with Face ID to continue',
+          Text('Unlock with ${biometricLabel()} to continue',
               textAlign: TextAlign.center,
               style: AppText.body(13, color: AppColors.inkMuted(0.65))),
           const SizedBox(height: 32),
           BrutalButton(
-            label: 'Unlock with Face ID',
+            label: 'Unlock with ${biometricLabel()}',
             loading: _authenticating,
             onPressed: _unlock,
             fontSize: 13,
