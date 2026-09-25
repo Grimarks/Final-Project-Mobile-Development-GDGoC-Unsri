@@ -1,3 +1,4 @@
+import 'package:campusflow/core/notifications/notification_service.dart';
 import 'package:campusflow/features/courses/data/course_repository.dart';
 import 'package:campusflow/features/courses/domain/course.dart';
 import 'package:campusflow/features/planner/data/planner_repository.dart';
@@ -33,10 +34,40 @@ void main() {
     await container.read(courseListProvider.future);
     expect(fakeCourses.fetchAllCallCount, 2);
   });
+
+  test('task dari chat yang punya deadline ikut dijadwalkan pengingatnya', () async {
+    final due = DateTime.now().add(const Duration(days: 2));
+    final notifications = _FakeNotifications();
+    final container = ProviderContainer(overrides: [
+      plannerRepositoryProvider.overrideWithValue(_FakePlannerRepo(dueDate: due)),
+      courseRepositoryProvider.overrideWithValue(_FakeCourseRepo()),
+      notificationServiceProvider.overrideWithValue(notifications),
+    ]);
+    addTearDown(container.dispose);
+
+    await container.read(chatControllerProvider.notifier).generatePlan();
+    await container.read(chatControllerProvider.notifier).confirmCandidatesAndGenerate();
+
+    expect(notifications.scheduled, [(1, due)]);
+  });
+}
+
+class _FakeNotifications extends NotificationService {
+  final scheduled = <(int, DateTime)>[];
+
+  @override
+  Future<void> scheduleTaskDueReminder({
+    required int taskId,
+    required String title,
+    required DateTime dueDate,
+  }) async =>
+      scheduled.add((taskId, dueDate));
 }
 
 class _FakePlannerRepo extends PlannerRepository {
-  _FakePlannerRepo() : super(Dio());
+  _FakePlannerRepo({this.dueDate}) : super(Dio());
+
+  final DateTime? dueDate;
 
   @override
   Future<List<TaskCandidate>> extractTasksFromChat() async =>
@@ -52,6 +83,7 @@ class _FakePlannerRepo extends PlannerRepository {
           status: 'not_started',
           progressPct: 0,
           priority: 'low',
+          dueDate: dueDate,
         ),
       ];
 

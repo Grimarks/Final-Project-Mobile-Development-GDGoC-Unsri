@@ -1,3 +1,4 @@
+import 'package:campusflow/core/notifications/notification_service.dart';
 import 'package:campusflow/features/planner/data/planner_repository.dart';
 import 'package:campusflow/features/planner/domain/plan.dart';
 import 'package:campusflow/features/planner/presentation/planner_screen.dart';
@@ -14,6 +15,7 @@ void main() {
   testWidgets('accept memanggil backend dengan plan_id lalu planner kembali ke pilihan awal',
       (tester) async {
     final fake = _FakeRepo();
+    final notifications = _FakeNotifications();
     final router = GoRouter(initialLocation: '/planner', routes: [
       GoRoute(path: '/planner', builder: (_, __) => const PlannerScreen()),
       GoRoute(
@@ -27,7 +29,10 @@ void main() {
       ),
     ]);
     await tester.pumpWidget(ProviderScope(
-      overrides: [plannerRepositoryProvider.overrideWithValue(fake)],
+      overrides: [
+        plannerRepositoryProvider.overrideWithValue(fake),
+        notificationServiceProvider.overrideWithValue(notifications),
+      ],
       child: MaterialApp.router(routerConfig: router),
     ));
     await tester.pumpAndSettle();
@@ -47,6 +52,8 @@ void main() {
 
     expect(fake.requestedHours, 3.0);
     expect(fake.acceptedPlanId, 7);
+    // tiap sesi plan yg di-accept dijadwalin pengingatnya
+    expect(notifications.sessions?.single.title, 'Latihan soal Matematika Dasar');
     expect(find.text('HOME'), findsOneWidget);
 
     // buka planner lagi -> balik ke kartu pilihan, bukan plan lama
@@ -75,6 +82,15 @@ const _plan = StudyPlan(
     ),
   ],
 );
+
+class _FakeNotifications extends NotificationService {
+  List<PlanSessionReminder>? sessions;
+
+  @override
+  Future<void> schedulePlanSessionReminders(List<PlanSessionReminder> sessions) async {
+    this.sessions = sessions;
+  }
+}
 
 class _FakeRepo extends PlannerRepository {
   _FakeRepo() : super(Dio());

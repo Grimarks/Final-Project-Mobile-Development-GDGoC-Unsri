@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../../core/notifications/notification_service.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../../courses/data/course_repository.dart';
 import '../../tasks/data/task_repository.dart';
@@ -142,6 +143,30 @@ final plannerRepositoryProvider =
   return PlannerRepository(ref.watch(apiClientProvider));
 });
 
+// jam mulai tiap sesi (hari ini) dari "HH:MM"
+List<PlanSessionReminder> planSessionReminders(StudyPlan plan, DateTime today) {
+  final reminders = <PlanSessionReminder>[];
+  for (final block in plan.blocks) {
+    final parts = block.startTime.split(':');
+    final hour = int.tryParse(parts.first);
+    final minute = parts.length > 1 ? int.tryParse(parts[1]) : null;
+    if (hour == null || minute == null) continue;
+    reminders.add(PlanSessionReminder(
+      title: block.title,
+      start: DateTime(today.year, today.month, today.day, hour, minute),
+      timeLabel: block.course != null ? '${block.timeLabel} · ${block.course}' : block.timeLabel,
+    ));
+  }
+  return reminders;
+}
+
+// notif gagal (izin ditolak dll) jangan sampe bikin accept plan ikut gagal
+Future<void> _schedulePlanReminders(NotificationService notifications, StudyPlan plan) async {
+  try {
+    await notifications.schedulePlanSessionReminders(planSessionReminders(plan, DateTime.now()));
+  } catch (_) {}
+}
+
 final activePlanProvider = FutureProvider.autoDispose<StudyPlan?>(
     (ref) => ref.watch(plannerRepositoryProvider).activePlan());
 
@@ -152,6 +177,7 @@ final todayPlanProvider =
 // lagi gak nongol plan lama yg masih bisa di-Adjust/Accept
 Future<StudyPlan> acceptPlanAndReset(WidgetRef ref, StudyPlan plan) async {
   final accepted = await ref.read(plannerRepositoryProvider).acceptPlan(plan.planId!);
+  await _schedulePlanReminders(ref.read(notificationServiceProvider), accepted);
   ref.invalidate(taskListProvider);
   ref.invalidate(courseListProvider);
   ref.invalidate(todayPlanProvider);
@@ -410,7 +436,18 @@ class ChatController extends Notifier<ChatState> {
     if (selected.isNotEmpty) {
       state = state.copyWith(status: ChatStatus.generatingPlan, error: null);
       try {
-        await ref.read(plannerRepositoryProvider).confirmTasks(selected);
+        final created = await ref.read(plannerRepositoryProvider).confirmTasks(selected);
+        // task dari AI juga dapet pengingat deadline, sama kayak yg dibikin manual
+        final notifications = ref.read(notificationServiceProvider);
+        for (final task in created.where((t) => t.dueDate != null)) {
+          try {
+            await notifications.scheduleTaskDueReminder(
+              taskId: task.id,
+              title: task.title,
+              dueDate: task.dueDate!,
+            );
+          } catch (_) {}
+        }
         // task/course baru harus nongol juga di Tasks/Profile, gak cuma di sini doang
         ref.invalidate(taskListProvider);
         ref.invalidate(courseListProvider);
