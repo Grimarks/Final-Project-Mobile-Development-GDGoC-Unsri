@@ -250,3 +250,106 @@ def test_instruction_window_one_sided_bounds(instruction, window):
 
     got = _instruction_window(instruction, (600, 780), (600, 840))
     assert got == (parse_hhmm(window[0]), parse_hhmm(window[1]))
+
+
+def _old_plan_10_to_13() -> PlanResponse:
+    return PlanResponse(
+        generated_by="random", available_hours=3, open_task_count=0,
+        start_time="10:00", end_time="13:00",
+        blocks=[
+            {"task_id": None, "title": "Latihan soal Fisika", "course": "Fisika",
+             "color": "#2BB673", "start_time": "10:00", "end_time": "11:00", "duration_minutes": 60},
+            {"task_id": None, "title": "Baca materi Kimia", "course": "Kimia",
+             "start_time": "11:10", "end_time": "12:00", "duration_minutes": 50},
+        ],
+    )
+
+
+@pytest.mark.asyncio
+async def test_adjust_shift_by_hours_moves_window_instead_of_shrinking(monkeypatch):
+    async def fake(system, prompt, **kw):
+        return {"start_time": "11:00", "end_time": "14:00", "blocks": [
+            {"task_id": None, "title": "Latihan soal Fisika", "course": "Fisika",
+             "start_time": "11:00", "end_time": "12:00"},
+            {"task_id": None, "title": "Baca materi Kimia", "course": "Kimia",
+             "start_time": "12:10", "end_time": "13:00"},
+        ]}
+
+    monkeypatch.setattr(planning_service, "complete_json", fake)
+    plan = await adjust_plan(_old_plan_10_to_13(), "geser semua 1 jam lebih lambat", [])
+    assert (plan.start_time, plan.end_time) == ("11:00", "14:00")
+    assert [b.start_time for b in plan.blocks] == ["11:00", "12:10"]
+    assert plan.blocks[0].color == "#2BB673"  # warna course blok random tetep
+
+
+@pytest.mark.asyncio
+async def test_adjust_move_to_period_is_enforced(monkeypatch):
+    async def fake(system, prompt, **kw):  # LLM "lupa" mindahin ke sore
+        return [
+            {"task_id": None, "title": "Latihan soal Fisika", "course": "Fisika",
+             "start_time": "11:00", "end_time": "12:00"},
+            {"task_id": None, "title": "Baca materi Kimia", "course": "Kimia",
+             "start_time": "12:10", "end_time": "13:00"},
+        ]
+
+    monkeypatch.setattr(planning_service, "complete_json", fake)
+    plan = await adjust_plan(_old_plan_10_to_13(), "pindahkan ke sore", [])
+    assert plan.blocks[0].start_time == "15:00"
+    _assert_inside(plan, plan.start_time, plan.end_time)
+
+
+@pytest.mark.asyncio
+async def test_adjust_break_is_a_gap_not_a_block(monkeypatch):
+    async def fake(system, prompt, **kw):
+        return {"blocks": [
+            {"task_id": None, "title": "Latihan soal Fisika", "start_time": "10:00", "end_time": "11:00"},
+            {"task_id": None, "title": "Istirahat", "start_time": "11:00", "end_time": "11:15"},
+            {"task_id": None, "title": "Baca materi Kimia", "start_time": "11:15", "end_time": "12:05"},
+        ]}
+
+    monkeypatch.setattr(planning_service, "complete_json", fake)
+    plan = await adjust_plan(_old_plan_10_to_13(), "tambahkan istirahat 15 menit", [])
+    assert [b.title for b in plan.blocks] == ["Latihan soal Fisika", "Baca materi Kimia"]
+    assert plan.blocks[1].start_time == "11:15"
+
+
+# ------------------------------- random plan ----------------------------------- #
+def test_random_plan_ignores_tasks_and_randomizes_everything():
+    import random as _random
+
+    from app.services.planning_service import RANDOM_ACTIVITIES, build_random_plan
+
+    courses = [Course(id=1, name="Matematika Dasar", color="#FF8A3D"),
+               Course(id=2, name="Fisika", color="#2BB673")]
+    starts, titles = set(), set()
+    for seed in range(40):
+        plan = build_random_plan(courses, 3, _random.Random(seed))
+        assert plan.generated_by == "random"
+        assert (parse_hhmm(plan.end_time) - parse_hhmm(plan.start_time)) == 180
+        _assert_inside(plan, plan.start_time, plan.end_time)
+        for b in plan.blocks:
+            assert b.task_id is None and b.course in {"Matematika Dasar", "Fisika"}
+            assert any(b.title.startswith(a) for a, _, _ in RANDOM_ACTIVITIES)
+            titles.add(b.title)
+        starts.add(plan.start_time)
+    assert len(starts) > 5 and len(titles) > 5  # beneran acak
+
+
+@pytest.mark.asyncio
+async def test_random_endpoint_uses_courses_not_existing_tasks(auth_client):
+    await auth_client.post("/courses", json={"name": "Fisika", "color": "#2BB673"})
+    await auth_client.post("/tasks", json={"title": "Latihan soal"})  # gak boleh kepake
+    body = (await auth_client.post("/ai/plan/random", json={"available_hours": 2})).json()
+    assert body["generated_by"] == "random" and body["plan_id"]
+    assert all(b["course"] == "Fisika" and b["task_id"] is None for b in body["blocks"])
+
+    active = (await auth_client.get("/ai/plan/active")).json()
+    assert active["plan_id"] == body["plan_id"]
+
+    accepted = (await auth_client.post(f"/ai/plan/{body['plan_id']}/accept")).json()
+    assert all(b["task_id"] for b in accepted["blocks"])
+
+
+@pytest.mark.asyncio
+async def test_active_plan_none_when_nothing_generated(auth_client):
+    assert (await auth_client.get("/ai/plan/active")).json() is None

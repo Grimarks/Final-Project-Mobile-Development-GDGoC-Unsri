@@ -109,7 +109,7 @@ class _ChoicePanel extends ConsumerWidget {
           icon: Icons.bolt_outlined,
           iconFill: AppColors.accent,
           title: 'Let me generate a random plan based on your free time',
-          description: "Tell me how many hours you're free today and I'll build a schedule.",
+          description: "Tell me how many hours you're free — I'll pick random courses, times, and activities.",
           onTap: () => select(PlannerMode.random),
         ),
         const SizedBox(height: 12),
@@ -211,8 +211,7 @@ class _RandomPlanPanel extends ConsumerWidget {
   }
 }
 
-// langkah tanya jam: user nyebutin jam luang + preferensi, dikirim ke backend
-// jadi field `preference`
+// langkah tanya jam: cukup jam luang, sisanya diacak backend
 class _AskHoursPanel extends StatefulWidget {
   const _AskHoursPanel({required this.state, required this.controller});
 
@@ -226,10 +225,12 @@ class _AskHoursPanel extends StatefulWidget {
 class _AskHoursPanelState extends State<_AskHoursPanel> {
   String? _reply;
 
+  // cukup jam luang doang, course/jam/kegiatannya diacak
   static const _quickReplies = [
-    ('3.5 hours free, mornings work best', 3.5),
-    ('Just use my tasks and deadlines', 3.5),
-    ('Only 2 hours today', 2.0),
+    ('1 hour', 1.0),
+    ('2 hours', 2.0),
+    ('3 hours', 3.0),
+    ('4 hours', 4.0),
   ];
 
   @override
@@ -239,8 +240,9 @@ class _AskHoursPanelState extends State<_AskHoursPanel> {
       children: [
         _AiBubble(
           text: _reply == null
-              ? 'Hi! Before I plan your day — how many hours do you have free today, and any preferences?'
-              : 'Got it — building a schedule around that now.',
+              ? 'Hi! Before I plan your day — how many hours do you have free today? '
+                  "I'll pick random courses, times, and activities for you."
+              : 'Got it — shuffling a random schedule for you now.',
         ),
         const SizedBox(height: 14),
         if (_reply == null)
@@ -252,7 +254,7 @@ class _AskHoursPanelState extends State<_AskHoursPanel> {
                 for (final (text, hours) in _quickReplies) ...[
                   GestureDetector(
                     onTap: () {
-                      widget.controller.setPreference(text, hours: hours);
+                      widget.controller.setHours(hours);
                       setState(() => _reply = text);
                     },
                     child: Container(
@@ -395,7 +397,11 @@ class _GeneratedPanelState extends ConsumerState<_GeneratedPanel> {
   Widget build(BuildContext context) {
     final plan = widget.plan;
     // biar user tau ini jadwal dari LLM apa fallback lokal
-    final source = plan.generatedBy == 'groq' ? 'Groq AI' : 'local planner';
+    final source = switch (plan.generatedBy) {
+      'groq' => 'Groq AI',
+      'random' => 'random picks',
+      _ => 'local planner',
+    };
     final window = plan.windowLabel;
 
     return Column(
@@ -549,6 +555,31 @@ class _AdjustPlanPanelState extends ConsumerState<_AdjustPlanPanel> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (state.error != null) _ErrorBanner(message: state.error!),
+                // liatin dulu plan yg mau diubah, biar user gak nebak2
+                ...switch (ref.watch(activePlanProvider)) {
+                  AsyncData(value: final StudyPlan plan) => [
+                      Text(
+                        plan.windowLabel != null
+                            ? 'Current plan · ${plan.windowLabel}'
+                            : 'Current plan',
+                        style: AppText.display(16),
+                      ),
+                      const SizedBox(height: 10),
+                      for (final block in plan.blocks) ...[
+                        _PlanBlockCard(block: block),
+                        const SizedBox(height: 8),
+                      ],
+                      const SizedBox(height: 14),
+                    ],
+                  AsyncData() => [
+                      _NoActivePlanCard(
+                        message: 'Generate a plan first, then come back to adjust it.',
+                        onGenerateInstead: () => modeNotifier.select(PlannerMode.random),
+                      ),
+                      const SizedBox(height: 14),
+                    ],
+                  _ => const <Widget>[],
+                },
                 Text('What should change?', style: AppText.display(16)),
                 const SizedBox(height: 8),
                 Text(

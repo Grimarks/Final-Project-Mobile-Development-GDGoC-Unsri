@@ -60,6 +60,33 @@ void main() {
     expect(find.textContaining('Tell me about your day'), findsOneWidget);
   });
 
+  testWidgets('adjust menampilkan plan aktif sebelum form instruksi', (tester) async {
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        plannerRepositoryProvider.overrideWithValue(_FakePlannerRepository(active: _activePlan)),
+      ],
+      child: const MaterialApp(home: PlannerScreen()),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Adjust my plan right now'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Current plan · 10:00–13:00'), findsOneWidget);
+    expect(find.text('Baca materi Fisika'), findsOneWidget);
+    expect(find.text('What should change?'), findsOneWidget);
+  });
+
+  testWidgets('adjust tanpa plan aktif langsung menyarankan generate dulu', (tester) async {
+    await tester.pumpWidget(wrap());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Adjust my plan right now'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Belum ada plan aktif'), findsOneWidget);
+  });
+
   testWidgets('back button dari mode manapun kembali ke 3 kartu pilihan', (tester) async {
     await tester.pumpWidget(wrap());
     await tester.pumpAndSettle();
@@ -75,8 +102,31 @@ void main() {
   });
 }
 
+const _activePlan = StudyPlan(
+  generatedBy: 'random',
+  availableHours: 3,
+  openTaskCount: 0,
+  startTime: '10:00',
+  endTime: '13:00',
+  planId: 3,
+  blocks: [
+    PlanBlock(
+      title: 'Baca materi Fisika',
+      course: 'Fisika',
+      startTime: '10:00',
+      endTime: '10:45',
+      durationMinutes: 45,
+    ),
+  ],
+);
+
 class _FakePlannerRepository extends PlannerRepository {
-  _FakePlannerRepository() : super(Dio());
+  _FakePlannerRepository({this.active}) : super(Dio());
+
+  final StudyPlan? active;
+
+  @override
+  Future<StudyPlan?> activePlan() async => active;
 
   @override
   Future<List<ChatMessage>> chatHistory() async => [];

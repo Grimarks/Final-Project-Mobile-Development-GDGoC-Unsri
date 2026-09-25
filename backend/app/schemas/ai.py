@@ -11,6 +11,10 @@ class PlanRequest(BaseModel):
     preference: str | None = Field(default=None, max_length=300)
 
 
+class RandomPlanRequest(BaseModel):
+    available_hours: float = Field(default=2, ge=0.5, le=16)
+
+
 class PlanBlock(BaseModel):
     """Satu blok jadwal — ini yg divalidasi dari respons LLM."""
 
@@ -25,7 +29,8 @@ class PlanBlock(BaseModel):
 
 
 class PlanResponse(BaseModel):
-    generated_by: Literal["groq", "heuristic"]
+    # "random" = opsi random plan, diacak kode (bukan dari task yg udah ada)
+    generated_by: Literal["groq", "heuristic", "random"]
     available_hours: float
     open_task_count: int
     blocks: list[PlanBlock]

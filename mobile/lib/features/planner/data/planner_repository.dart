@@ -14,19 +14,23 @@ class PlannerRepository {
 
   final Dio _dio;
 
-  // opsi 1: generate plan acak dari jam luang yg disebut user
-  Future<StudyPlan> generate({
-    double availableHours = 3.5,
-    int startHour = 9,
-    String? preference,
-  }) async {
+  // opsi 1: random plan, cuma butuh jam luang. course, jam mulai, sama
+  // kegiatannya diacak backend — gak nyomot dari task yg udah ada
+  Future<StudyPlan> generateRandom({required double availableHours}) async {
     try {
-      final resp = await _dio.post('/ai/plan', data: {
-        'available_hours': availableHours,
-        'start_hour': startHour,
-        'preference': preference,
-      });
+      final resp = await _dio.post('/ai/plan/random', data: {'available_hours': availableHours});
       return StudyPlan.fromJson(resp.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw toApiException(e);
+    }
+  }
+
+  // plan terakhir yg bakal diubah sama Adjust, null kalo belom pernah generate
+  Future<StudyPlan?> activePlan() async {
+    try {
+      final resp = await _dio.get('/ai/plan/active');
+      final data = resp.data;
+      return data is Map<String, dynamic> ? StudyPlan.fromJson(data) : null;
     } on DioException catch (e) {
       throw toApiException(e);
     }
@@ -134,6 +138,9 @@ class PlannerRepository {
 final plannerRepositoryProvider =
     Provider<PlannerRepository>((ref) => PlannerRepository(ref.watch(apiClientProvider)));
 
+final activePlanProvider = FutureProvider.autoDispose<StudyPlan?>(
+    (ref) => ref.watch(plannerRepositoryProvider).activePlan());
+
 final todayPlanProvider =
     FutureProvider<StudyPlan?>((ref) => ref.watch(plannerRepositoryProvider).todayPlan());
 
@@ -146,6 +153,7 @@ Future<StudyPlan> acceptPlanAndReset(WidgetRef ref, StudyPlan plan) async {
   ref.invalidate(todayPlanProvider);
   ref.invalidate(randomPlanControllerProvider);
   ref.invalidate(adjustPlanControllerProvider);
+  ref.invalidate(activePlanProvider);
   ref.read(chatControllerProvider.notifier).clearPlan();
   ref.read(plannerModeProvider.notifier).reset();
   return accepted;
@@ -174,29 +182,25 @@ class RandomPlanState {
     this.phase = RandomPlanPhase.askingHours,
     this.plan,
     this.error,
-    this.availableHours = 3.5,
-    this.preference,
+    this.availableHours = 2,
   });
 
   final RandomPlanPhase phase;
   final StudyPlan? plan;
   final String? error;
   final double availableHours;
-  final String? preference;
 
   RandomPlanState copyWith({
     RandomPlanPhase? phase,
     StudyPlan? plan,
     String? error,
     double? availableHours,
-    String? preference,
   }) =>
       RandomPlanState(
         phase: phase ?? this.phase,
         plan: plan ?? this.plan,
         error: error,
         availableHours: availableHours ?? this.availableHours,
-        preference: preference ?? this.preference,
       );
 }
 
@@ -204,16 +208,14 @@ class RandomPlanController extends Notifier<RandomPlanState> {
   @override
   RandomPlanState build() => const RandomPlanState();
 
-  void setPreference(String value, {double? hours}) =>
-      state = state.copyWith(preference: value, availableHours: hours);
+  void setHours(double hours) => state = state.copyWith(availableHours: hours);
 
   Future<void> generate() async {
     state = state.copyWith(phase: RandomPlanPhase.generating);
     try {
-      final plan = await ref.read(plannerRepositoryProvider).generate(
-            availableHours: state.availableHours,
-            preference: state.preference,
-          );
+      final plan = await ref
+          .read(plannerRepositoryProvider)
+          .generateRandom(availableHours: state.availableHours);
       state = state.copyWith(phase: RandomPlanPhase.generated, plan: plan);
     } catch (e) {
       state = state.copyWith(phase: RandomPlanPhase.askingHours, error: e.toString());
@@ -258,6 +260,7 @@ class AdjustPlanController extends Notifier<AdjustPlanState> {
     state = state.copyWith(phase: AdjustPlanPhase.submitting, error: null);
     try {
       final result = await ref.read(plannerRepositoryProvider).adjustPlan(instruction);
+      ref.invalidate(activePlanProvider); // plan aktif-nya udah ganti
       state = state.copyWith(phase: AdjustPlanPhase.result, result: result);
     } on ApiException catch (e) {
       // 404 = belom pernah generate plan -> tawarin pindah ke opsi random

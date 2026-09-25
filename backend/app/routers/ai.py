@@ -25,12 +25,19 @@ from app.schemas.ai import (
     ExtractTasksResponse,
     PlanRequest,
     PlanResponse,
+    RandomPlanRequest,
     QuizResponse,
     SummaryResponse,
 )
 from app.schemas.task import TaskOut
 from app.services import chat_service, materials_service
-from app.services.planning_service import AdjustFailed, adjust_plan, build_plan, plan_to_json
+from app.services.planning_service import (
+    AdjustFailed,
+    adjust_plan,
+    build_plan,
+    build_random_plan,
+    plan_to_json,
+)
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
@@ -77,6 +84,31 @@ async def plan_my_day(
     """Fitur utama: susun jadwal hari ini dari task yg masih kebuka."""
     plan = await build_plan(await _user_tasks(user, db), body)
     return await _save_plan(plan, user, db)
+
+
+@router.post("/plan/random", response_model=PlanResponse)
+async def random_plan(
+    body: RandomPlanRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Opsi "random plan": cuma butuh jam luang, sisanya (course, jam, kegiatan) diacak."""
+    courses = list(
+        (await db.execute(select(Course).where(Course.user_id == user.id))).scalars().all()
+    )
+    return await _save_plan(build_random_plan(courses, body.available_hours), user, db)
+
+
+@router.get("/plan/active", response_model=PlanResponse | None)
+async def active_plan(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Plan terakhir (yg bakal diubah sama Adjust), biar user liat dulu apa yg mau diubah."""
+    try:
+        return _row_to_plan(await _get_active_plan_row(user, db))
+    except HTTPException:
+        return None
 
 
 async def _get_active_plan_row(user: User, db: AsyncSession) -> AIGenerated:

@@ -3,10 +3,12 @@ build_plan_heuristic (murni skor prioritas, gak butuh AI)."""
 from __future__ import annotations
 
 import json
+import random
 import re
 from datetime import datetime, timezone
 
 from app.models.chat_message import ChatMessage
+from app.models.course import Course
 from app.models.task import Task
 from app.schemas.ai import PlanBlock, PlanRequest, PlanResponse
 from app.services.chat_service import parse_time_window, to_24h
@@ -257,6 +259,82 @@ async def build_plan(
         return build_plan_heuristic(tasks, req)
 
 
+# (kegiatan, durasi min, durasi max) buat random plan
+RANDOM_ACTIVITIES = [
+    ("Latihan soal", 40, 90),
+    ("Belajar mandiri", 40, 90),
+    ("Baca materi", 25, 60),
+    ("Review catatan", 25, 45),
+    ("Bikin ringkasan", 30, 60),
+]
+# dipake kalo user belom punya course sama sekali
+GENERIC_COURSES = ["Matematika", "Bahasa Inggris", "Fisika", "Pemrograman", "Statistika"]
+RANDOM_EARLIEST = 7 * 60  # paling pagi mulai jam 07:00
+RANDOM_LATEST_END = 22 * 60  # paling malem kelar jam 22:00
+
+
+def build_random_plan(
+    courses: list[Course], available_hours: float, rng: random.Random | None = None
+) -> PlanResponse:
+    """Opsi "random plan": sengaja GAK liat task yg udah ada. Course, jam mulai,
+    kegiatan, sama durasinya diacak semua. Blok-nya belom nyambung ke task —
+    task-nya baru dibikin pas plan di-accept."""
+    rng = rng or random.Random()
+    total = min(round(available_hours * 60), 24 * 60)
+
+    # jam mulai acak (kelipatan 15 menit) biar jadwalnya muat sebelum jam 22
+    latest_start = RANDOM_LATEST_END - total
+    if latest_start >= RANDOM_EARLIEST:
+        start = RANDOM_EARLIEST + 15 * rng.randint(0, (latest_start - RANDOM_EARLIEST) // 15)
+    else:  # jam luangnya kepanjangan buat muat 07-22, mulai sepagi mungkin aja
+        start = max(0, min(RANDOM_EARLIEST, 24 * 60 - total))
+    end = min(start + total, 24 * 60)
+
+    pool = [(c.name, c.color) for c in courses] or [(n, DEFAULT_COLOR) for n in GENERIC_COURSES]
+    blocks: list[PlanBlock] = []
+    used: set[tuple[str, str]] = set()
+    last_course: str | None = None
+    cursor = start
+    while end - cursor >= MIN_BLOCK_MINUTES:
+        choices = [c for c in pool if c[0] != last_course] or pool
+        name, color = rng.choice(choices)
+        activities = [a for a in RANDOM_ACTIVITIES if (a[0], name) not in used] or RANDOM_ACTIVITIES
+        activity, lo, hi = rng.choice(activities)
+        minutes = min(5 * rng.randint(lo // 5, hi // 5), end - cursor)
+        blocks.append(
+            PlanBlock(
+                task_id=None,
+                title=f"{activity} {name}",
+                course=name,
+                color=color,
+                start_time=fmt_minutes(cursor),
+                end_time=fmt_minutes(cursor + minutes),
+                duration_minutes=minutes,
+                reason="dipilih acak",
+            )
+        )
+        used.add((activity, name))
+        last_course = name
+        cursor += minutes + rng.choice([5, 10, 15])
+
+    # sisa waktu di ujung yg gak cukup buat 1 blok lagi, gabungin ke blok terakhir
+    if blocks:
+        last = blocks[-1]
+        last_end = parse_hhmm(last.end_time)
+        if last_end is not None and end - last_end < MIN_BLOCK_MINUTES + 15:
+            last.end_time = fmt_minutes(end)
+            last.duration_minutes += end - last_end
+
+    return PlanResponse(
+        generated_by="random",
+        available_hours=round((end - start) / 60, 2),
+        open_task_count=0,
+        blocks=blocks,
+        start_time=fmt_minutes(start),
+        end_time=fmt_minutes(end),
+    )
+
+
 def plan_to_json(plan: PlanResponse) -> str:
     # plan_id itu id baris-nya sendiri, gak usah ikut disimpen di dalem kontennya
     return json.dumps(plan.model_dump(exclude={"plan_id"}), ensure_ascii=False)
@@ -280,7 +358,9 @@ ADJUST_SYSTEM_PROMPT = (
     "mahasiswa secara eksplisit dan tidak ada di daftar — isi title dan course-nya dengan "
     "jelas; (4) kembalikan SEMUA blok (yang lama + yang baru), jangan menghapus blok yang "
     "tidak disinggung instruksi — kalau waktunya tidak cukup, perpendek blok lain; "
-    "(5) reason singkat dalam bahasa Indonesia."
+    "(5) istirahat/jeda cukup berupa waktu kosong antar blok, JANGAN dijadikan blok; "
+    "(6) kalau instruksi menggeser jadwal, geser juga start_time/end_time waktu luangnya; "
+    "(7) reason singkat dalam bahasa Indonesia."
 )
 
 
@@ -341,8 +421,21 @@ def _clock(m: re.Match) -> int:
     return to_24h(int(m.group(1)), m.group(3)) * 60 + int(m.group(2) or 0)
 
 
+# instruksi geser/pindah waktu tanpa nyebut jam pasti ("geser 1 jam lebih lambat")
+_SHIFT_RE = re.compile(
+    r"\b(geser|geserin|pindah|pindahin|pindahkan|mundur|mundurin|undur|maju|majuin|"
+    r"lambat|telat|awal|cepat|nanti|pagi|siang|sore|malam|later|earlier|shift|delay|move)\b",
+    re.IGNORECASE,
+)
+# istirahat cukup jadi jeda kosong, jangan jadi blok (ntar kebikin task "Istirahat")
+_BREAK_TITLE_RE = re.compile(r"^\s*(istirahat|rehat|jeda|break|rest)\b", re.IGNORECASE)
+
+
 def _instruction_window(
-    instruction: str, old_window: tuple[int, int] | None, llm_window: tuple[int, int] | None
+    instruction: str,
+    old_window: tuple[int, int] | None,
+    llm_window: tuple[int, int] | None,
+    span: tuple[int, int] | None = None,
 ) -> tuple[int, int] | None:
     """Jam luang abis adjust. Diputusin kode, bukan LLM: cuma berubah kalo instruksinya
     beneran nyebut jam (dulu LLM suka iseng melarin jendelanya sendiri)."""
@@ -363,15 +456,33 @@ def _instruction_window(
                 end += 12 * 60  # "sampai jam 1" siang
         if 0 <= start < end <= 24 * 60:
             return start, end
-    if parsed.hours is not None:
+    shifting = bool(span and _SHIFT_RE.search(instruction))
+    if parsed.hours is not None and not shifting:  # "geser 1 jam" bukan berarti luangnya 1 jam
         wanted = round(parsed.hours * 60)
         if llm_window and abs((llm_window[1] - llm_window[0]) - wanted) <= 15:
             return llm_window
         start = old_window[0] if old_window else (llm_window[0] if llm_window else None)
         return (start, min(start + wanted, 24 * 60)) if start is not None else None
+    if shifting:
+        # jadwal digeser: jendela ikut pindah, panjangnya tetep kayak yg lama
+        if llm_window and llm_window[0] <= span[0] and span[1] <= llm_window[1]:
+            return llm_window
+        length = (old_window[1] - old_window[0]) if old_window else span[1] - span[0]
+        start = min(span[0], max(0, 24 * 60 - length))
+        return start, min(max(span[1], start + length), 24 * 60)
     if old_window:
         return old_window
     return llm_window
+
+
+# "pindah ke sore" -> (awal periode paling cepet, paling telat, jam mulai default)
+_PERIODS = {
+    "pagi": (5 * 60, 11 * 60, 8 * 60),
+    "siang": (10 * 60, 15 * 60, 12 * 60),
+    "sore": (14 * 60, 18 * 60, 15 * 60),
+    "malam": (18 * 60, 23 * 60, 19 * 60),
+}
+_PERIOD_TARGET_RE = re.compile(r"\b(?:ke|jadi|di|pas|waktu)\s+(pagi|siang|sore|malam)\b", re.IGNORECASE)
 
 
 def _normalize_adjusted(
@@ -379,6 +490,8 @@ def _normalize_adjusted(
 ) -> tuple[list[PlanBlock], tuple[int, int] | None]:
     """Validasi hasil adjust dari LLM: jam valid, task_id beneran punya user,
     gak numpuk, dan tetep di dalem waktu luang."""
+    if isinstance(raw, list):  # LLM kadang cuma bales list blok doang
+        raw = {"blocks": raw}
     if not isinstance(raw, dict):
         raise ValueError("respons bukan objek JSON")
     blocks_raw = raw.get("blocks")
@@ -387,7 +500,9 @@ def _normalize_adjusted(
 
     by_id = {t.id: t for t in tasks}
     by_title = {t.title.strip().lower(): t for t in tasks}
-    old_colors = {b.task_id: b.color for b in old_plan.blocks if b.task_id is not None}
+    # blok random plan belom punya task_id, jadi warnanya dicocokin dari judul/course
+    old_colors = {b.title.strip().lower(): b.color for b in old_plan.blocks}
+    old_colors.update({(b.course or "").strip().lower(): b.color for b in old_plan.blocks if b.course})
 
     parsed: list[tuple[int, int, PlanBlock]] = []
     for item in blocks_raw:
@@ -401,6 +516,8 @@ def _normalize_adjusted(
         except (TypeError, ValueError):
             task_id = None
         title = str(item.get("title") or "").strip()
+        if task_id is None and _BREAK_TITLE_RE.match(title):
+            continue  # jeda-nya tetep kejaga dari jam blok2 lainnya
         task = by_id.get(task_id) if task_id is not None else None
         if task is None and title:
             task = by_title.get(title.lower())  # LLM lupa id-nya tapi judulnya sama
@@ -422,7 +539,9 @@ def _normalize_adjusted(
                 task_id=None,
                 title=title[:200],
                 course=str(course)[:150] if course else None,
-                color=old_colors.get(task_id, DEFAULT_COLOR),
+                color=old_colors.get(
+                    title.lower(), old_colors.get(str(course or "").strip().lower(), DEFAULT_COLOR)
+                ),
                 start_time="",
                 end_time="",
                 duration_minutes=end - start,
@@ -442,7 +561,17 @@ def _normalize_adjusted(
         if window_start is not None and window_end is not None and window_end > window_start
         else None
     )
-    window = _instruction_window(instruction, _window_of(old_plan), llm_window)
+    span = (min(p[0] for p in parsed), max(p[1] for p in parsed))
+    window = _instruction_window(instruction, _window_of(old_plan), llm_window, span)
+
+    # "pindah ke sore" tapi LLM naro di luar sore -> geser semuanya ke periode itu
+    target = _PERIOD_TARGET_RE.search(instruction)
+    if target and window:
+        lo, hi, default = _PERIODS[target.group(1).lower()]
+        if not lo <= window[0] <= hi:
+            delta = min(default, 24 * 60 - (window[1] - window[0])) - window[0]
+            window = (window[0] + delta, window[1] + delta)
+            parsed = [(s + delta, e + delta, b) for s, e, b in parsed]
 
     parsed.sort(key=lambda p: p[0])
 

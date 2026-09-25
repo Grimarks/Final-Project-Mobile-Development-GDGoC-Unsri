@@ -34,7 +34,7 @@ void main() {
 
     await tester.tap(find.text('Let me generate a random plan based on your free time'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('3.5 hours free, mornings work best'));
+    await tester.tap(find.text('3 hours'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('GENERATE PLAN'));
     await tester.pumpAndSettle();
@@ -45,6 +45,7 @@ void main() {
     await tester.tap(find.text('ACCEPT PLAN'));
     await tester.pumpAndSettle();
 
+    expect(fake.requestedHours, 3.0);
     expect(fake.acceptedPlanId, 7);
     expect(find.text('HOME'), findsOneWidget);
 
@@ -80,13 +81,13 @@ class _FakeRepo extends PlannerRepository {
 
   int? acceptedPlanId;
 
+  double? requestedHours;
+
   @override
-  Future<StudyPlan> generate({
-    double availableHours = 3.5,
-    int startHour = 9,
-    String? preference,
-  }) async =>
-      _plan;
+  Future<StudyPlan> generateRandom({required double availableHours}) async {
+    requestedHours = availableHours;
+    return _plan;
+  }
 
   @override
   Future<StudyPlan> acceptPlan(int planId) async {
