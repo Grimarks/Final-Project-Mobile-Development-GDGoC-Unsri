@@ -1,4 +1,5 @@
 import json
+from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import delete, select
@@ -34,6 +35,39 @@ from app.services.planning_service import AdjustFailed, adjust_plan, build_plan,
 router = APIRouter(prefix="/ai", tags=["ai"])
 
 
+async def _user_tasks(user: User, db: AsyncSession) -> list[Task]:
+    return list(
+        (
+            await db.execute(
+                select(Task).options(selectinload(Task.course)).where(Task.user_id == user.id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+
+async def _save_plan(plan: PlanResponse, user: User, db: AsyncSession) -> PlanResponse:
+    """Arsipin plan ke ai_generated, balikin plan + plan_id-nya."""
+    row = AIGenerated(
+        user_id=user.id,
+        source_type="task_set",
+        source_id=None,
+        type="plan",
+        content_json=plan_to_json(plan),
+    )
+    db.add(row)
+    await db.commit()
+    plan.plan_id = row.id
+    return plan
+
+
+def _row_to_plan(row: AIGenerated) -> PlanResponse:
+    plan = PlanResponse.model_validate(json.loads(row.content_json))
+    plan.plan_id = row.id
+    return plan
+
+
 @router.post("/plan", response_model=PlanResponse)
 async def plan_my_day(
     body: PlanRequest,
@@ -41,26 +75,8 @@ async def plan_my_day(
     db: AsyncSession = Depends(get_db),
 ):
     """Fitur utama: susun jadwal hari ini dari task yg masih kebuka."""
-    tasks = list(
-        (
-            await db.execute(
-                select(Task).options(selectinload(Task.course)).where(Task.user_id == user.id)
-            )
-        ).scalars().all()
-    )
-    plan = await build_plan(tasks, body)
-
-    db.add(
-        AIGenerated(
-            user_id=user.id,
-            source_type="task_set",
-            source_id=None,
-            type="plan",
-            content_json=plan_to_json(plan),
-        )
-    )
-    await db.commit()
-    return plan
+    plan = await build_plan(await _user_tasks(user, db), body)
+    return await _save_plan(plan, user, db)
 
 
 async def _get_active_plan_row(user: User, db: AsyncSession) -> AIGenerated:
@@ -88,33 +104,108 @@ async def adjust_active_plan(
 ):
     """Ubah plan AKTIF (baris ai_generated type='plan' terakhir punya user) sesuai instruksi."""
     row = await _get_active_plan_row(user, db)
-    old_plan = PlanResponse.model_validate(json.loads(row.content_json))
+    old_plan = _row_to_plan(row)
 
     try:
-        new_plan = await adjust_plan(old_plan, body.instruction)
+        new_plan = await adjust_plan(old_plan, body.instruction, await _user_tasks(user, db))
     except AdjustFailed as exc:
         # Groq gagal/hasilnya ancur: jangan pura2 berhasil, balikin plan lama +
         # error-nya, jangan disimpen ke ai_generated
         return AdjustPlanResponse(
-            generated_by=old_plan.generated_by,
-            available_hours=old_plan.available_hours,
-            open_task_count=old_plan.open_task_count,
-            blocks=old_plan.blocks,
+            **old_plan.model_dump(),
             adjusted=False,
             error=f"Gagal menyesuaikan plan, jadwal lama tetap dipakai: {exc}",
         )
 
-    db.add(
-        AIGenerated(
-            user_id=user.id,
-            source_type="task_set",
-            source_id=None,
-            type="plan",
-            content_json=plan_to_json(new_plan),
-        )
-    )
-    await db.commit()
+    new_plan = await _save_plan(new_plan, user, db)
     return AdjustPlanResponse(**new_plan.model_dump(), adjusted=True, error=None)
+
+
+@router.post("/plan/{plan_id}/accept", response_model=PlanResponse)
+async def accept_plan(
+    plan_id: int,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Terima plan: tiap blok WAJIB nyambung ke task beneran. Blok kegiatan baru
+    (task_id null, biasanya dari Adjust) dibikinin task + course-nya di sini."""
+    row = (
+        await db.execute(
+            select(AIGenerated).where(
+                AIGenerated.id == plan_id,
+                AIGenerated.user_id == user.id,
+                AIGenerated.type == "plan",
+            )
+        )
+    ).scalar_one_or_none()
+    if row is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Plan tidak ditemukan")
+    plan = _row_to_plan(row)
+    if not plan.blocks:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Plan kosong, tidak ada yang diterima")
+
+    tasks = await _user_tasks(user, db)
+    task_by_id = {t.id: t for t in tasks}
+    open_by_key = {
+        ((t.course.name.lower() if t.course else ""), t.title.lower()): t
+        for t in tasks
+        if t.status != "done"
+    }
+    courses = list(
+        (await db.execute(select(Course).where(Course.user_id == user.id))).scalars().all()
+    )
+    course_by_name = {c.name.lower(): c for c in courses}
+
+    for block in plan.blocks:
+        task = task_by_id.get(block.task_id) if block.task_id is not None else None
+        if task is None:
+            key = ((block.course or "").lower(), block.title.lower())
+            task = open_by_key.get(key)
+        if task is None:
+            course = None
+            if block.course:
+                course = course_by_name.get(block.course.lower())
+                if course is None:
+                    course = Course(user_id=user.id, name=block.course, color=block.color)
+                    db.add(course)
+                    course_by_name[block.course.lower()] = course
+            task = Task(user_id=user.id, course=course, title=block.title[:200])
+            db.add(task)
+            await db.flush()
+            open_by_key[key] = task
+        block.task_id = task.id
+        block.title = task.title
+        if task.course is not None:
+            block.course = task.course.name
+            block.color = task.course.color
+
+    plan.accepted = True
+    plan.plan_date = date.today().isoformat()
+    row.content_json = plan_to_json(plan)
+    await db.commit()
+    return plan
+
+
+@router.get("/plan/today", response_model=PlanResponse | None)
+async def todays_plan(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Plan yg udah di-accept buat hari ini (paling baru), buat ditampilin di Home."""
+    rows = (
+        await db.execute(
+            select(AIGenerated)
+            .where(AIGenerated.user_id == user.id, AIGenerated.type == "plan")
+            .order_by(AIGenerated.id.desc())
+            .limit(30)
+        )
+    ).scalars().all()
+    today = date.today().isoformat()
+    for row in rows:
+        plan = _row_to_plan(row)
+        if plan.accepted and plan.plan_date == today:
+            return plan
+    return None
 
 
 @router.post("/plan/from-chat", response_model=PlanResponse)
@@ -132,30 +223,20 @@ async def plan_from_chat(
         .scalars()
         .all()
     )
-    preference = chat_service.history_to_preference(history) if history else None
-
-    tasks = list(
-        (
-            await db.execute(
-                select(Task).options(selectinload(Task.course)).where(Task.user_id == user.id)
-            )
+    req = PlanRequest()
+    window = chat_service.parse_time_window(history)
+    if window.start_minutes is not None and window.end_minutes is not None:
+        req = PlanRequest(
+            start_hour=window.start_minutes // 60,
+            start_minute=window.start_minutes % 60,
+            available_hours=min(max((window.end_minutes - window.start_minutes) / 60, 0.5), 16),
         )
-        .scalars()
-        .all()
-    )
-    plan = await build_plan(tasks, PlanRequest(preference=preference))
+    elif window.hours is not None:
+        req = PlanRequest(available_hours=window.hours)
 
-    db.add(
-        AIGenerated(
-            user_id=user.id,
-            source_type="task_set",
-            source_id=None,
-            type="plan",
-            content_json=plan_to_json(plan),
-        )
-    )
-    await db.commit()
-    return plan
+    context = chat_service.history_to_context(history) if history else None
+    plan = await build_plan(await _user_tasks(user, db), req, context)
+    return await _save_plan(plan, user, db)
 
 
 @router.post("/chat/extract-tasks", response_model=ExtractTasksResponse)
@@ -184,8 +265,11 @@ async def extract_chat_tasks(
         .scalars()
         .all()
     )
+    # yg udah done boleh diusulin lagi (mau latihan lagi), cuma yg masih kebuka yg di-skip
     existing_keys = {
-        ((t.course.name if t.course else "").lower(), t.title.lower()) for t in existing
+        ((t.course.name if t.course else "").lower(), t.title.lower())
+        for t in existing
+        if t.status != "done"
     }
     fresh = [c for c in candidates if (c.course.lower(), c.title.lower()) not in existing_keys]
     return ExtractTasksResponse(tasks=fresh)

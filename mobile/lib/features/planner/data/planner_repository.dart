@@ -53,6 +53,27 @@ class PlannerRepository {
     }
   }
 
+  // accept = semua blok disambungin ke task beneran (yg belom ada dibikinin)
+  Future<StudyPlan> acceptPlan(int planId) async {
+    try {
+      final resp = await _dio.post('/ai/plan/$planId/accept');
+      return StudyPlan.fromJson(resp.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw toApiException(e);
+    }
+  }
+
+  // plan yg udah di-accept buat hari ini, null kalo belom ada
+  Future<StudyPlan?> todayPlan() async {
+    try {
+      final resp = await _dio.get('/ai/plan/today');
+      final data = resp.data;
+      return data is Map<String, dynamic> ? StudyPlan.fromJson(data) : null;
+    } on DioException catch (e) {
+      throw toApiException(e);
+    }
+  }
+
   Future<ChatReply> sendChatMessage(String message) async {
     try {
       final resp = await _dio.post('/ai/chat/message', data: {'message': message});
@@ -112,6 +133,23 @@ class PlannerRepository {
 
 final plannerRepositoryProvider =
     Provider<PlannerRepository>((ref) => PlannerRepository(ref.watch(apiClientProvider)));
+
+final todayPlanProvider =
+    FutureProvider<StudyPlan?>((ref) => ref.watch(plannerRepositoryProvider).todayPlan());
+
+// accept plan yg lagi diliat, terus bersihin semua state planner biar pas dibuka
+// lagi gak nongol plan lama yg masih bisa di-Adjust/Accept
+Future<StudyPlan> acceptPlanAndReset(WidgetRef ref, StudyPlan plan) async {
+  final accepted = await ref.read(plannerRepositoryProvider).acceptPlan(plan.planId!);
+  ref.invalidate(taskListProvider);
+  ref.invalidate(courseListProvider);
+  ref.invalidate(todayPlanProvider);
+  ref.invalidate(randomPlanControllerProvider);
+  ref.invalidate(adjustPlanControllerProvider);
+  ref.read(chatControllerProvider.notifier).clearPlan();
+  ref.read(plannerModeProvider.notifier).reset();
+  return accepted;
+}
 
 // mode yg dipilih user di AI Planner. none = masih di kartu pilihan
 enum PlannerMode { none, random, adjust, chat }
@@ -394,6 +432,11 @@ class ChatController extends Notifier<ChatState> {
       state = state.copyWith(status: ChatStatus.idle, error: e.toString());
     }
   }
+
+  void clearPlan() => state = ChatState(
+        messages: state.messages,
+        loadingHistory: state.loadingHistory,
+      );
 
   Future<void> startOver() async {
     try {

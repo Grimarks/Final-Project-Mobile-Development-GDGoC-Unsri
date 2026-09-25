@@ -3,6 +3,7 @@ JSON dari LLM mentah-mentah — divalidasi lagi pake Pydantic di pemanggilnya.
 Kalo GROQ_API_KEY kosong / API-nya down, pemanggil jatoh ke heuristik lokal."""
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from typing import Any
@@ -35,6 +36,18 @@ def _extract_json(raw: str) -> Any:
     return json.loads(text)
 
 
+async def _backoff(exc: Exception, attempt: int, retries: int) -> None:
+    """Kena rate limit (429) jangan langsung nembak lagi, tunggu dulu bentar."""
+    if attempt >= retries:
+        return
+    if isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code == 429:
+        try:
+            wait = float(exc.response.headers.get("retry-after", ""))
+        except ValueError:
+            wait = 2.0 * (attempt + 1)
+        await asyncio.sleep(min(max(wait, 1.0), 8.0))
+
+
 async def complete_json(
     system_prompt: str,
     user_prompt: str,
@@ -57,6 +70,9 @@ async def complete_json(
         "max_tokens": max_tokens,
         "response_format": {"type": "json_object"},
     }
+    if settings.groq_model.startswith("openai/gpt-oss"):
+        # token "mikir" ikut ngabisin kuota TPM free tier -> gampang kena 429
+        payload["reasoning_effort"] = "low"
     headers = {"Authorization": f"Bearer {settings.groq_api_key}"}
 
     last_error: Exception | None = None
@@ -74,6 +90,7 @@ async def complete_json(
             except (httpx.HTTPError, KeyError, ValueError, json.JSONDecodeError) as exc:
                 last_error = exc
                 logger.warning("Groq gagal (percobaan %s): %s", attempt + 1, exc)
+                await _backoff(exc, attempt, retries)
 
     raise GroqUnavailable(f"Groq gagal setelah {retries + 1} percobaan: {last_error}")
 
@@ -116,5 +133,6 @@ async def complete_text(
             except (httpx.HTTPError, KeyError, ValueError) as exc:
                 last_error = exc
                 logger.warning("Groq gagal (percobaan %s): %s", attempt + 1, exc)
+                await _backoff(exc, attempt, retries)
 
     raise GroqUnavailable(f"Groq gagal setelah {retries + 1} percobaan: {last_error}")

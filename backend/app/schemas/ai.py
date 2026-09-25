@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 class PlanRequest(BaseModel):
     available_hours: float = Field(default=3.5, ge=0.5, le=16)
     start_hour: int = Field(default=9, ge=0, le=23)
+    start_minute: int = Field(default=0, ge=0, le=59)
     preference: str | None = Field(default=None, max_length=300)
 
 
@@ -28,6 +29,14 @@ class PlanResponse(BaseModel):
     available_hours: float
     open_task_count: int
     blocks: list[PlanBlock]
+    # rentang waktu luang yg dipake nyusun jadwal ("10:00"-"13:00"). plan lama
+    # di DB belom punya field ini, makanya boleh None
+    start_time: str | None = None
+    end_time: str | None = None
+    # id baris ai_generated-nya, biar accept nembak plan yg lagi diliat user
+    plan_id: int | None = None
+    accepted: bool = False
+    plan_date: str | None = None  # YYYY-MM-DD, diisi pas di-accept
 
 
 class SummaryResponse(BaseModel):

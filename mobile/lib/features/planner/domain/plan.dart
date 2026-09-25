@@ -45,6 +45,10 @@ class StudyPlan {
     required this.availableHours,
     required this.openTaskCount,
     required this.blocks,
+    this.startTime,
+    this.endTime,
+    this.planId,
+    this.accepted = false,
   });
 
   // "groq" kalo dari LLM, "heuristic" kalo fallback lokal — ditampilin apa
@@ -54,6 +58,17 @@ class StudyPlan {
   final int openTaskCount;
   final List<PlanBlock> blocks;
 
+  // jam luang yg dipake nyusun jadwal, mis. "10:00"-"13:00". plan lama bisa null
+  final String? startTime;
+  final String? endTime;
+
+  // id plan di backend, dipake buat accept plan yg lagi diliat
+  final int? planId;
+  final bool accepted;
+
+  String? get windowLabel =>
+      startTime != null && endTime != null ? '$startTime–$endTime' : null;
+
   factory StudyPlan.fromJson(Map<String, dynamic> json) => StudyPlan(
         generatedBy: json['generated_by'] as String,
         availableHours: (json['available_hours'] as num).toDouble(),
@@ -61,6 +76,10 @@ class StudyPlan {
         blocks: (json['blocks'] as List<dynamic>)
             .map((e) => PlanBlock.fromJson(e as Map<String, dynamic>))
             .toList(),
+        startTime: json['start_time'] as String?,
+        endTime: json['end_time'] as String?,
+        planId: json['plan_id'] as int?,
+        accepted: json['accepted'] as bool? ?? false,
       );
 }
 

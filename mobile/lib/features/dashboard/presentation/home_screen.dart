@@ -12,6 +12,8 @@ import '../../../core/widgets/brutal_card.dart';
 import '../../../core/widgets/priority_block.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../auth/presentation/auth_controller.dart';
+import '../../planner/data/planner_repository.dart';
+import '../../planner/domain/plan.dart';
 import '../../study_session/data/session_repository.dart';
 import '../../tasks/data/task_repository.dart';
 import '../../tasks/domain/task.dart';
@@ -23,13 +25,17 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authControllerProvider).valueOrNull;
     final tasksAsync = ref.watch(taskListProvider);
+    final todayPlan = ref.watch(todayPlanProvider).valueOrNull;
 
     return Scaffold(
       body: SafeArea(
         bottom: false,
         child: RefreshIndicator(
           color: AppColors.ink,
-          onRefresh: () async => ref.refresh(taskListProvider.future),
+          onRefresh: () {
+            ref.invalidate(todayPlanProvider);
+            return ref.refresh(taskListProvider.future);
+          },
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 6, 20, 24),
             children: [
@@ -43,6 +49,15 @@ class HomeScreen extends ConsumerWidget {
                 tasks: tasksAsync.valueOrNull ?? const [],
                 streak: ref.watch(studyStreakProvider),
               ),
+              if (todayPlan != null && todayPlan.blocks.isNotEmpty) ...[
+                const SizedBox(height: 24),
+                SectionHeader("Today's Plan · ${todayPlan.windowLabel ?? ''}"),
+                const SizedBox(height: 12),
+                for (final block in todayPlan.blocks) ...[
+                  _PlanRow(block: block),
+                  const SizedBox(height: 8),
+                ],
+              ],
               const SizedBox(height: 24),
               const SectionHeader("Today's Focus"),
               const SizedBox(height: 12),
@@ -155,6 +170,46 @@ class _AiBanner extends StatelessWidget {
         ),
         const Positioned(left: 16, top: -14, child: AiTag(rotated: true)),
       ],
+    );
+  }
+}
+
+// satu sesi dari plan yg udah di-accept
+class _PlanRow extends StatelessWidget {
+  const _PlanRow({required this.block});
+
+  final PlanBlock block;
+
+  @override
+  Widget build(BuildContext context) {
+    return BrutalCard(
+      shadowOffset: 3,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 92,
+            child: Text(block.timeLabel, style: AppText.display(12, weight: FontWeight.w700)),
+          ),
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: block.color,
+              border: Brutal.border(width: 1.5),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              block.course != null ? '${block.title} · ${block.course}' : block.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppText.body(12.5, weight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

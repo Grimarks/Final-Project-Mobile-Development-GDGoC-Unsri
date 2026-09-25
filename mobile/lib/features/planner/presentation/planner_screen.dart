@@ -343,23 +343,69 @@ class _GeneratingPanel extends StatelessWidget {
 }
 
 // panel hasil plan, dipake bareng sama alur random/adjust/chat
-class _GeneratedPanel extends StatelessWidget {
+class _GeneratedPanel extends ConsumerStatefulWidget {
   const _GeneratedPanel({required this.plan, required this.onAdjust});
 
   final StudyPlan plan;
   final VoidCallback onAdjust;
 
   @override
+  ConsumerState<_GeneratedPanel> createState() => _GeneratedPanelState();
+}
+
+class _GeneratedPanelState extends ConsumerState<_GeneratedPanel> {
+  bool _accepting = false;
+
+  // accept = blok2nya disambungin ke task beneran di backend, bukan cuma pindah
+  // halaman. abis itu state planner direset & plan-nya nongol di Home
+  Future<void> _accept() async {
+    setState(() => _accepting = true);
+    final messenger = ScaffoldMessenger.of(context);
+    final router = GoRouter.of(context);
+    try {
+      final accepted = await acceptPlanAndReset(ref, widget.plan);
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.success,
+            content: Text(
+              "Plan accepted — ${accepted.blocks.length} "
+              "${accepted.blocks.length == 1 ? 'session' : 'sessions'} added to today's plan.",
+              style: AppText.body(13, weight: FontWeight.w600),
+            ),
+          ),
+        );
+      router.go('/home');
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _accepting = false);
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.danger,
+            content: Text(e.toString(), style: AppText.body(13, weight: FontWeight.w600)),
+          ),
+        );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final plan = widget.plan;
     // biar user tau ini jadwal dari LLM apa fallback lokal
     final source = plan.generatedBy == 'groq' ? 'Groq AI' : 'local planner';
+    final window = plan.windowLabel;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Generated from ${plan.openTaskCount} open tasks · '
-          '${plan.availableHours} hrs available · $source',
+          window != null
+              ? 'Free time $window · ${plan.openTaskCount} open tasks · $source'
+              : 'Generated from ${plan.openTaskCount} open tasks · '
+                  '${plan.availableHours} hrs available · $source',
           style: AppText.body(11.5,
               weight: FontWeight.w600, color: AppColors.inkMuted(0.55)),
         ),
@@ -383,7 +429,7 @@ class _GeneratedPanel extends StatelessWidget {
                 fill: AppColors.surface,
                 labelColor: AppColors.ink,
                 fontSize: 12.5,
-                onPressed: onAdjust,
+                onPressed: _accepting ? null : widget.onAdjust,
               ),
             ),
             const SizedBox(width: 10),
@@ -392,9 +438,9 @@ class _GeneratedPanel extends StatelessWidget {
               child: BrutalButton(
                 label: 'Accept plan',
                 fontSize: 12.5,
-                // accept plan = balik ke Home, biar user milih sendiri task mana
-                // yg mau dikerjain duluan dari kartu Today's Focus
-                onPressed: () => context.go('/home'),
+                loading: _accepting,
+                onPressed:
+                    plan.blocks.isEmpty || plan.planId == null ? null : _accept,
               ),
             ),
           ],

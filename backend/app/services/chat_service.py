@@ -2,6 +2,8 @@
 gaya belajar) — bukan tempat AI ngarang-ngarang task, itu urusannya build_plan()."""
 from __future__ import annotations
 
+import re
+from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from app.models.chat_message import ChatMessage
@@ -70,17 +72,22 @@ async def reply_to(history: list[ChatMessage]) -> tuple[str, str]:
 # extract course/task dari chat, buat opsi "Talk to me" (AI ngurus semuanya)
 EXTRACT_SYSTEM_PROMPT = (
     "Kamu membaca percakapan antara mahasiswa dan asisten perencana belajar. Tugasmu: "
-    "ekstrak daftar tugas akademik KONKRET yang disebutkan mahasiswa secara eksplisit — "
-    "JANGAN mengarang tugas yang tidak disebutkan di percakapan. Kamu HANYA membalas "
-    "dengan JSON valid, tanpa penjelasan tambahan dan tanpa markdown fence. "
-    'Format: {"tasks": [{"course": str, "title": str, '
+    "ekstrak daftar kegiatan belajar/tugas akademik yang ingin dikerjakan mahasiswa. "
+    "Setiap mata kuliah yang mahasiswa bilang mau dipelajari/dikerjakan DIHITUNG sebagai "
+    "tugas, walaupun kegiatannya umum. Contoh: \"aku mau belajar Matematika Dasar, "
+    "latihan saja\" -> {\"course\": \"Matematika Dasar\", \"title\": \"Latihan soal "
+    "Matematika Dasar\"}; \"besok kuis Fisika bab 2\" -> {\"course\": \"Fisika\", "
+    "\"title\": \"Belajar kuis bab 2\", \"type\": \"quiz\"}. JANGAN mengarang mata kuliah "
+    "yang tidak disebut mahasiswa, dan jangan ambil contoh yang hanya disebut AI. "
+    "Kamu HANYA membalas dengan JSON valid, tanpa penjelasan tambahan dan tanpa markdown "
+    'fence. Format: {"tasks": [{"course": str, "title": str, '
     '"type": "assignment"|"exam"|"quiz", "difficulty": "easy"|"medium"|"hard", '
     '"due_date": "YYYY-MM-DD" atau null}]}. '
-    "Field \"course\" wajib diisi (perkirakan dari konteks kalau mata kuliahnya tidak "
-    "eksplisit disebut, jangan dikosongkan). Kalau tanggal disebut relatif "
-    '("besok", "minggu depan"), ubah ke YYYY-MM-DD berdasarkan tanggal hari ini yang '
-    'diberikan di bawah. Kalau mahasiswa tidak menyebutkan tugas/mata kuliah konkret '
-    'apa pun, balas {"tasks": []} — jangan memaksakan hasil.'
+    "Nama course pakai kapitalisasi rapi (Title Case). title singkat & jelas, maksimal "
+    "8 kata. Kalau tanggal disebut relatif (\"besok\", \"minggu depan\"), ubah ke "
+    "YYYY-MM-DD berdasarkan tanggal hari ini yang diberikan di bawah; kalau tidak disebut, "
+    'null. Kalau mahasiswa sama sekali tidak menyebut mata kuliah apa pun, balas '
+    '{"tasks": []}.'
 )
 
 
@@ -97,26 +104,90 @@ async def extract_tasks(history: list[ChatMessage]) -> list[TaskCandidate]:
     if not history:
         return []
     try:
-        raw = await complete_json(EXTRACT_SYSTEM_PROMPT, build_extract_prompt(history))
-        items = raw.get("tasks") if isinstance(raw, dict) else raw
-        if not isinstance(items, list):
-            return []
-        candidates: list[TaskCandidate] = []
-        for item in items:
-            try:
-                candidates.append(TaskCandidate.model_validate(item))
-            except (ValueError, TypeError):
-                continue  # skip yg gak valid aja, jangan gagalin semuanya
-        return candidates
+        # LLM kadang iseng bales kosong padahal jelas2 ada matkul yg disebut,
+        # jadi kalo kosong coba sekali lagi
+        for _ in range(2):
+            raw = await complete_json(
+                EXTRACT_SYSTEM_PROMPT, build_extract_prompt(history), temperature=0.0
+            )
+            items = raw.get("tasks") if isinstance(raw, dict) else raw
+            if not isinstance(items, list):
+                continue
+            candidates: list[TaskCandidate] = []
+            for item in items:
+                try:
+                    candidates.append(TaskCandidate.model_validate(item))
+                except (ValueError, TypeError):
+                    continue  # skip yg gak valid aja, jangan gagalin semuanya
+            if candidates:
+                return candidates
+        return []
     except (GroqUnavailable, ValueError, TypeError, AttributeError):
         return []
 
 
-def history_to_preference(history: list[ChatMessage]) -> str:
-    """Ringkes histori chat jadi teks preference buat `PlanRequest.preference`."""
-    lines = [f"{'Mahasiswa' if m.role == 'user' else 'AI'}: {m.content}" for m in history]
-    summary = " | ".join(lines)
-    max_len = 290  # PlanRequest.preference max_length=300
-    if len(summary) > max_len:
-        summary = summary[: max_len - 1].rstrip() + "…"
-    return summary
+def history_to_context(history: list[ChatMessage]) -> str:
+    """Seluruh percakapan sebagai teks, buat konteks build_plan (gak dipotong 300
+    karakter kayak preference — dulu info jam luang di akhir chat malah kebuang)."""
+    return "\n".join(
+        f"{'Mahasiswa' if m.role == 'user' else 'AI'}: {m.content}" for m in history
+    )
+
+
+@dataclass
+class TimeWindow:
+    start_minutes: int | None = None  # menit dari 00:00
+    end_minutes: int | None = None
+    hours: float | None = None
+
+
+_PERIOD = r"(pagi|siang|sore|malam)"
+_CLOCK = r"(\d{1,2})(?:[.:](\d{2}))?"
+_RANGE_RE = re.compile(
+    rf"(jam|pukul)?\s*{_CLOCK}\s*{_PERIOD}?\s*"
+    r"(?:-|–|—|s/d|sd|sampai|sampe|hingga|ke|to|until)\s*"
+    rf"(?:jam|pukul)?\s*{_CLOCK}\s*{_PERIOD}?",
+    re.IGNORECASE,
+)
+_HOURS_RE = re.compile(r"(?<![:.\d])(\d{1,2}(?:[.,]\d)?)\s*jam\b", re.IGNORECASE)
+
+
+def to_24h(hour: int, period: str | None) -> int:
+    period = (period or "").lower()
+    if period == "siang" and hour <= 6:
+        return hour + 12  # jam 1 siang = 13
+    if period in ("sore", "malam") and 1 <= hour < 12:
+        return hour + 12
+    return hour
+
+
+def parse_time_window(history: list[ChatMessage]) -> TimeWindow:
+    """Cari jam luang dari pesan user, deterministik (gak nebak pake AI).
+    "jam 10.00 - 13.00", "10-13", "jam 1 siang sampai 3 sore", "punya 3 jam".
+    Kalo disebut berkali-kali, yg PALING BARU yg dipake."""
+    window = TimeWindow()
+    for msg in history:
+        if msg.role != "user":
+            continue
+        text = msg.content
+        for m in _RANGE_RE.finditer(text):
+            prefix, h1, m1, p1, h2, m2, p2 = m.groups()
+            # "3 - 4 soal" jangan ke-parse jadi jam: wajib ada penanda waktu
+            if not (prefix or m1 or m2 or p1 or p2):
+                continue
+            start_h, end_h = to_24h(int(h1), p1 or p2), to_24h(int(h2), p2)
+            if start_h > 24 or end_h > 24:
+                continue
+            start = start_h * 60 + int(m1 or 0)
+            end = end_h * 60 + int(m2 or 0)
+            if end <= start and end_h < 12 and not p2:
+                end += 12 * 60  # "10 - 1" maksudnya 10:00-13:00
+            if end <= start or end > 24 * 60:
+                continue
+            window.start_minutes, window.end_minutes = start, end
+            window.hours = None
+        for m in _HOURS_RE.finditer(_RANGE_RE.sub(" ", text)):
+            hours = float(m.group(1).replace(",", "."))
+            if 0.5 <= hours <= 16:
+                window.hours = hours
+    return window
