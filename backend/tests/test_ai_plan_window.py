@@ -353,3 +353,16 @@ async def test_random_endpoint_uses_courses_not_existing_tasks(auth_client):
 @pytest.mark.asyncio
 async def test_active_plan_none_when_nothing_generated(auth_client):
     assert (await auth_client.get("/ai/plan/active")).json() is None
+
+
+@pytest.mark.asyncio
+async def test_today_plan_is_the_last_accepted_not_highest_id(auth_client, db_session):
+    me = (await auth_client.get("/auth/me")).json()
+    block = {"task_id": None, "title": "X", "course": "C", "start_time": "10:00",
+             "end_time": "11:00", "duration_minutes": 60}
+    older = await _seed_plan(db_session, me["id"], [block])
+    newer = await _seed_plan(db_session, me["id"], [dict(block, title="Y")])
+
+    await auth_client.post(f"/ai/plan/{newer}/accept")
+    await auth_client.post(f"/ai/plan/{older}/accept")  # accept belakangan
+    assert (await auth_client.get("/ai/plan/today")).json()["plan_id"] == older

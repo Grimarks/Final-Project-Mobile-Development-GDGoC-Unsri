@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
 from app.core.security import get_current_user
 from app.models.study_session import StudySession
+from app.models.task import Task
 from app.models.user import User
 from app.schemas.study_session import (
     StudySessionComplete,
@@ -35,6 +36,15 @@ async def create_session(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    if body.task_id is not None:
+        # jangan sampe sesi nempel ke task punya user lain
+        owned = (
+            await db.execute(
+                select(Task.id).where(Task.id == body.task_id, Task.user_id == user.id)
+            )
+        ).scalar_one_or_none()
+        if owned is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Task tidak ditemukan")
     session = StudySession(user_id=user.id, **body.model_dump())
     db.add(session)
     await db.commit()

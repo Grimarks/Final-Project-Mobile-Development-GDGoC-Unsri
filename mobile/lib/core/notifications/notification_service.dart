@@ -79,6 +79,11 @@ class NotificationService {
 
   Future<void> cancelSessionEndReminder() => _plugin.cancel(_sessionNotificationId);
 
+  Future<void> cancelAll() async {
+    await _ensureReady();
+    await _plugin.cancelAll();
+  }
+
   // tombol "test notification" di Profile, buat ngecek/demo notif tanpa nunggu deadline
   Future<void> scheduleTestNotification(Duration after) async {
     await _ensureReady();

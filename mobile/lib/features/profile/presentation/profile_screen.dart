@@ -13,6 +13,8 @@ import '../../../core/widgets/section_header.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../../auth/presentation/biometric_controller.dart';
 import '../../courses/data/course_repository.dart';
+import '../../courses/domain/course.dart';
+import '../../tasks/data/task_repository.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -92,8 +94,7 @@ class ProfileScreen extends ConsumerWidget {
                                 style: AppText.body(13.5, weight: FontWeight.w600)),
                           ),
                           GestureDetector(
-                            onTap: () =>
-                                ref.read(courseListProvider.notifier).remove(course.id),
+                            onTap: () => _confirmDeleteCourse(context, ref, course),
                             child: Icon(Icons.close,
                                 size: 18, color: AppColors.inkMuted(0.45)),
                           ),
@@ -305,6 +306,87 @@ class _BrutalSwitch extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+// hapus course ikut ngehapus semua task-nya, jadi wajib konfirmasi dulu
+Future<void> _confirmDeleteCourse(BuildContext context, WidgetRef ref, Course course) async {
+  final taskCount = (ref.read(taskListProvider).valueOrNull ?? const [])
+      .where((t) => t.courseId == course.id)
+      .length;
+  final confirmed = await showDialog<bool>(
+    context: context,
+    barrierColor: AppColors.ink.withOpacity(0.55),
+    builder: (dialogContext) => Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 320),
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              padding: const EdgeInsets.all(22),
+              decoration: Brutal.box(shadowOffset: 6),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Delete course?', style: AppText.display(19)),
+                  const SizedBox(height: 12),
+                  Text(
+                    taskCount == 0
+                        ? '"${course.name}" will be removed.'
+                        : '"${course.name}" and its $taskCount '
+                            '${taskCount == 1 ? 'task' : 'tasks'} will be deleted permanently.',
+                    style: AppText.body(12.5,
+                        weight: FontWeight.w600, color: AppColors.inkMuted(0.65)),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: BrutalButton(
+                          label: 'Cancel',
+                          fill: AppColors.surface,
+                          labelColor: AppColors.ink,
+                          fontSize: 12,
+                          onPressed: () => Navigator.of(dialogContext).pop(false),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        flex: 2,
+                        child: BrutalButton(
+                          label: 'Delete',
+                          fill: AppColors.danger,
+                          fontSize: 12,
+                          onPressed: () => Navigator.of(dialogContext).pop(true),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+  if (confirmed != true) return;
+  try {
+    await ref.read(courseListProvider.notifier).remove(course.id);
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.danger,
+            content: Text(e.toString(), style: AppText.body(13, weight: FontWeight.w600)),
+          ),
+        );
+    }
   }
 }
 

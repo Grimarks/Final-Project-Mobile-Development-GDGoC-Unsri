@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../auth/presentation/auth_controller.dart';
 import '../domain/study_session_record.dart';
 
 class SessionRepository {
@@ -47,7 +48,10 @@ class SessionRepository {
 }
 
 final sessionRepositoryProvider =
-    Provider<SessionRepository>((ref) => SessionRepository(ref.watch(apiClientProvider)));
+    Provider<SessionRepository>((ref) {
+  ref.watch(currentUserIdProvider); // ganti akun -> data dimuat ulang
+  return SessionRepository(ref.watch(apiClientProvider));
+});
 
 final studySessionListProvider =
     FutureProvider<List<StudySessionRecord>>((ref) => ref.watch(sessionRepositoryProvider).fetchAll());

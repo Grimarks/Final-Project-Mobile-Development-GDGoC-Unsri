@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/local_cache.dart';
 import '../../../core/notifications/notification_service.dart';
+import '../../auth/presentation/auth_controller.dart';
 import '../domain/task.dart';
 
 class TaskRepository {
@@ -23,7 +24,9 @@ class TaskRepository {
       await LocalCache.putList(_cacheKey, list);
       return list.map((e) => Task.fromJson(e as Map<String, dynamic>)).toList();
     } on DioException catch (e) {
-      final cached = LocalCache.getList(_cacheKey);
+      // cache cuma buat offline (gak ada respons server). kalo server bales
+      // error (401 dll) jangan pura2 sukses pake data lama
+      final cached = e.response == null ? LocalCache.getList(_cacheKey) : null;
       if (cached != null) {
         return cached.map((e) => Task.fromJson(e as Map<String, dynamic>)).toList();
       }
@@ -82,7 +85,10 @@ class TaskRepository {
 }
 
 final taskRepositoryProvider =
-    Provider<TaskRepository>((ref) => TaskRepository(ref.watch(apiClientProvider)));
+    Provider<TaskRepository>((ref) {
+  ref.watch(currentUserIdProvider); // ganti akun -> data dimuat ulang
+  return TaskRepository(ref.watch(apiClientProvider));
+});
 
 class TaskList extends AsyncNotifier<List<Task>> {
   @override

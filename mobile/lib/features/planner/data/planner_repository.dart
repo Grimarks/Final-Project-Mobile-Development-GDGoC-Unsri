@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../auth/presentation/auth_controller.dart';
 import '../../courses/data/course_repository.dart';
 import '../../tasks/data/task_repository.dart';
 import '../../tasks/domain/task.dart';
@@ -136,7 +137,10 @@ class PlannerRepository {
 }
 
 final plannerRepositoryProvider =
-    Provider<PlannerRepository>((ref) => PlannerRepository(ref.watch(apiClientProvider)));
+    Provider<PlannerRepository>((ref) {
+  ref.watch(currentUserIdProvider); // ganti akun -> data dimuat ulang
+  return PlannerRepository(ref.watch(apiClientProvider));
+});
 
 final activePlanProvider = FutureProvider.autoDispose<StudyPlan?>(
     (ref) => ref.watch(plannerRepositoryProvider).activePlan());
@@ -164,7 +168,10 @@ enum PlannerMode { none, random, adjust, chat }
 
 class PlannerModeController extends Notifier<PlannerMode> {
   @override
-  PlannerMode build() => PlannerMode.none;
+  PlannerMode build() {
+    ref.watch(currentUserIdProvider);
+    return PlannerMode.none;
+  }
 
   void select(PlannerMode mode) => state = mode;
 
@@ -206,7 +213,10 @@ class RandomPlanState {
 
 class RandomPlanController extends Notifier<RandomPlanState> {
   @override
-  RandomPlanState build() => const RandomPlanState();
+  RandomPlanState build() {
+    ref.watch(currentUserIdProvider);
+    return const RandomPlanState();
+  }
 
   void setHours(double hours) => state = state.copyWith(availableHours: hours);
 
@@ -254,7 +264,10 @@ class AdjustPlanState {
 
 class AdjustPlanController extends Notifier<AdjustPlanState> {
   @override
-  AdjustPlanState build() => const AdjustPlanState();
+  AdjustPlanState build() {
+    ref.watch(currentUserIdProvider);
+    return const AdjustPlanState();
+  }
 
   Future<void> submit(String instruction) async {
     state = state.copyWith(phase: AdjustPlanPhase.submitting, error: null);
@@ -329,7 +342,10 @@ class ChatState {
 
 class ChatController extends Notifier<ChatState> {
   @override
-  ChatState build() => const ChatState();
+  ChatState build() {
+    ref.watch(currentUserIdProvider);
+    return const ChatState();
+  }
 
   Future<void> loadHistory() async {
     state = state.copyWith(loadingHistory: true);

@@ -42,6 +42,7 @@ class PlanResponse(BaseModel):
     plan_id: int | None = None
     accepted: bool = False
     plan_date: str | None = None  # YYYY-MM-DD, diisi pas di-accept
+    accepted_at: str | None = None  # ISO datetime, buat nentuin plan hari ini yg terbaru
 
 
 class SummaryResponse(BaseModel):

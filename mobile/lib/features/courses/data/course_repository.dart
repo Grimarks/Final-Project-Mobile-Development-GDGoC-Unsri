@@ -2,6 +2,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../../core/notifications/notification_service.dart';
+import '../../auth/presentation/auth_controller.dart';
+import '../../tasks/data/task_repository.dart';
+import '../../tasks/domain/task.dart';
 import '../domain/course.dart';
 
 class CourseRepository {
@@ -39,7 +43,10 @@ class CourseRepository {
 }
 
 final courseRepositoryProvider =
-    Provider<CourseRepository>((ref) => CourseRepository(ref.watch(apiClientProvider)));
+    Provider<CourseRepository>((ref) {
+  ref.watch(currentUserIdProvider); // ganti akun -> data dimuat ulang
+  return CourseRepository(ref.watch(apiClientProvider));
+});
 
 class CourseList extends AsyncNotifier<List<Course>> {
   @override
@@ -51,8 +58,16 @@ class CourseList extends AsyncNotifier<List<Course>> {
     await future;
   }
 
+  // course dihapus = task2 di dalemnya ikut kehapus di backend, jadi list task
+  // di-refresh & pengingat task2 itu dibatalin
   Future<void> remove(int id) async {
+    final tasks = ref.read(taskListProvider).valueOrNull ?? const <Task>[];
     await ref.read(courseRepositoryProvider).delete(id);
+    final notifications = ref.read(notificationServiceProvider);
+    for (final task in tasks.where((t) => t.courseId == id)) {
+      await notifications.cancelTaskDueReminder(task.id);
+    }
+    ref.invalidate(taskListProvider);
     ref.invalidateSelf();
     await future;
   }

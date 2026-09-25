@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../auth/presentation/auth_controller.dart';
 import '../domain/material_item.dart';
 import '../domain/quiz.dart';
 import '../domain/summary.dart';
@@ -69,7 +70,10 @@ class MaterialRepository {
 }
 
 final materialRepositoryProvider =
-    Provider<MaterialRepository>((ref) => MaterialRepository(ref.watch(apiClientProvider)));
+    Provider<MaterialRepository>((ref) {
+  ref.watch(currentUserIdProvider); // ganti akun -> data dimuat ulang
+  return MaterialRepository(ref.watch(apiClientProvider));
+});
 
 class MaterialList extends AsyncNotifier<List<MaterialItem>> {
   @override

@@ -1,5 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/network/api_client.dart';
+import '../../../core/network/local_cache.dart';
+import '../../../core/notifications/notification_service.dart';
 import '../data/auth_repository.dart';
 import '../domain/user.dart';
 
@@ -45,7 +48,14 @@ class AuthController extends AsyncNotifier<AppUser?> {
   }
 
   Future<void> logout() async {
+    // logout beneran (Face ID mati) -> pengingat task akun ini jangan nongol lagi.
+    // kalo Face ID nyala, logout = kunci app doang, pengingatnya dibiarin
+    if (!await ref.read(tokenStorageProvider).isBiometricEnabled()) {
+      await ref.read(notificationServiceProvider).cancelAll();
+    }
     await ref.read(authRepositoryProvider).logout();
+    // cache offline task punya akun ini, jangan sampe kebaca akun lain
+    await LocalCache.clear();
     state = const AsyncValue.data(null);
   }
 
@@ -69,6 +79,13 @@ class AuthController extends AsyncNotifier<AppUser?> {
 
 final authControllerProvider =
     AsyncNotifierProvider<AuthController, AppUser?>(AuthController.new);
+
+// id user yg lagi login. repository2 data nge-watch ini, jadi ganti akun =
+// semua list (task, course, materi, plan, chat) dimuat ulang, gak nyisa punya
+// akun sebelumnya
+final currentUserIdProvider = Provider<int?>(
+  (ref) => ref.watch(authControllerProvider.select((s) => s.valueOrNull?.id)),
+);
 
 // shortcut buat cek lagi login apa engga
 final isLoggedInProvider = Provider<bool>(

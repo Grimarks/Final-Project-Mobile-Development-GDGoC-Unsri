@@ -32,3 +32,16 @@ async def test_invalid_feedback_rejected(auth_client):
 async def test_complete_unknown_session(auth_client):
     resp = await auth_client.patch("/study-sessions/999/complete", json={"feedback": "easy"})
     assert resp.status_code == 404
+
+
+async def test_session_rejects_other_users_task(auth_client, client):
+    other = await client.post(
+        "/auth/register",
+        json={"name": "Other", "email": "other-sess@unsri.ac.id", "password": "Password123!"},
+    )
+    token = other.json()["tokens"]["access_token"]
+    theirs = await client.post(
+        "/tasks", json={"title": "Punya orang"}, headers={"Authorization": f"Bearer {token}"}
+    )
+    resp = await auth_client.post("/study-sessions", json={"task_id": theirs.json()["id"]})
+    assert resp.status_code == 404

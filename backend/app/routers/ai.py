@@ -1,5 +1,5 @@
 import json
-from datetime import date
+from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import delete, select
@@ -213,6 +213,7 @@ async def accept_plan(
 
     plan.accepted = True
     plan.plan_date = date.today().isoformat()
+    plan.accepted_at = datetime.now().isoformat()
     row.content_json = plan_to_json(plan)
     await db.commit()
     return plan
@@ -233,11 +234,13 @@ async def todays_plan(
         )
     ).scalars().all()
     today = date.today().isoformat()
-    for row in rows:
-        plan = _row_to_plan(row)
-        if plan.accepted and plan.plan_date == today:
-            return plan
-    return None
+    accepted = [
+        plan
+        for plan in map(_row_to_plan, rows)
+        if plan.accepted and plan.plan_date == today
+    ]
+    # yg paling terakhir di-ACCEPT (bukan yg id-nya paling gede)
+    return max(accepted, key=lambda p: p.accepted_at or "", default=None)
 
 
 @router.post("/plan/from-chat", response_model=PlanResponse)
