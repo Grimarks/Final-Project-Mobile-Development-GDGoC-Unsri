@@ -51,22 +51,45 @@ class AuthRepository {
     return AppUser.fromJson(body['user'] as Map<String, dynamic>);
   }
 
-  Future<bool> hasSession() async => (await _storage.readAccessToken()) != null;
+  // patokannya refresh token, soalnya abis logout (Face ID nyala) access token
+  // udah dihapus tapi refresh token masih disimpen
+  Future<bool> hasSession() async => (await _storage.readRefreshToken()) != null;
 
   // ambil user pake token yg udah kesimpen (tanpa password), dipake abis Face ID
-  // sukses. token expired udah otomatis di-refresh di interceptor api_client.
-  // null = sesi bener2 abis, mesti login manual lagi
+  // sukses. access token expired di-refresh otomatis di interceptor api_client.
+  // null = sesi bener2 abis, mesti login manual lagi. server gak kejangkau ->
+  // lempar ApiException, sesinya jangan dianggep abis
   Future<AppUser?> restoreSession() async {
-    if (!await hasSession()) return null;
+    final refresh = await _storage.readRefreshToken();
+    if (refresh == null) return null;
     try {
+      if (await _storage.readAccessToken() == null) {
+        final resp = await _dio.post('/auth/refresh', data: {'refresh_token': refresh});
+        await _storage.saveTokens(
+          access: resp.data['access_token'] as String,
+          refresh: resp.data['refresh_token'] as String,
+        );
+      }
       final resp = await _dio.get('/auth/me');
       return AppUser.fromJson(resp.data as Map<String, dynamic>);
-    } on DioException {
-      return null;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        await _storage.clear();
+        return null;
+      }
+      throw toApiException(e);
     }
   }
 
-  Future<void> logout() => _storage.clear();
+  // Face ID nyala -> refresh token disimpen biar abis logout bisa masuk lagi
+  // pake Face ID. mati -> hapus semua kayak biasa
+  Future<void> logout() async {
+    if (await _storage.isBiometricEnabled()) {
+      await _storage.clearAccessToken();
+    } else {
+      await _storage.clear();
+    }
+  }
 
   Future<AppUser> updateProfile({required String name, String? email}) async {
     try {

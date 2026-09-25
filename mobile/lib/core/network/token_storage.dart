@@ -27,6 +27,13 @@ class TokenStorage {
     await prefs.remove(_refreshKey);
   }
 
+  // logout pas Face ID nyala: refresh token disisain biar gerbang Face ID
+  // tetep bisa masukin lagi tanpa password
+  Future<void> clearAccessToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_accessKey);
+  }
+
   // setting face id/touch id, dipisah dari token biar gak ikut kehapus pas logout
   Future<void> setBiometricEnabled(bool enabled) async {
     final prefs = await SharedPreferences.getInstance();

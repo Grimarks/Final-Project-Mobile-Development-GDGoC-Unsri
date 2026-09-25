@@ -68,7 +68,7 @@ final biometricSettingProvider =
 // bukan form email/password. autoDispose biar tiap balik ke login dihitung ulang
 final biometricGateProvider = FutureProvider.autoDispose<bool>((ref) async {
   final storage = ref.watch(tokenStorageProvider);
-  final hasToken = await storage.readAccessToken() != null;
+  final hasToken = await storage.readRefreshToken() != null;
   if (!hasToken) return false;
   return storage.isBiometricEnabled();
 });

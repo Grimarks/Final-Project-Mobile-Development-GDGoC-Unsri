@@ -324,7 +324,23 @@ class _BiometricGateViewState extends ConsumerState<_BiometricGateView> {
       return;
     }
 
-    final restored = await ref.read(authControllerProvider.notifier).restoreSession();
+    final bool restored;
+    try {
+      restored = await ref.read(authControllerProvider.notifier).restoreSession();
+    } catch (e) {
+      // server mati/gak kejangkau: sesi masih aman, tetep di gerbang biar bisa coba lagi
+      if (!mounted) return;
+      setState(() => _authenticating = false);
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.danger,
+            content: Text(e.toString(), style: AppText.body(13, weight: FontWeight.w600)),
+          ),
+        );
+      return;
+    }
     if (!mounted) return;
     if (restored) return; // isLoggedInProvider otomatis pindah ke /home lewat GoRouter
 

@@ -76,8 +76,11 @@ final apiClientProvider = Provider<Dio>((ref) {
         handler.next(options);
       },
       onError: (error, handler) async {
-        final isAuthCall = error.requestOptions.path.startsWith('/auth/');
-        if (error.response?.statusCode != 401 || isAuthCall) {
+        // /auth/me dll tetep boleh di-refresh, cuma endpoint yg ngeluarin token yg engga
+        final path = error.requestOptions.path;
+        final isTokenCall =
+            path == '/auth/login' || path == '/auth/register' || path == '/auth/refresh';
+        if (error.response?.statusCode != 401 || isTokenCall) {
           return handler.next(error);
         }
 
@@ -89,14 +92,19 @@ final apiClientProvider = Provider<Dio>((ref) {
           final fresh = Dio(BaseOptions(baseUrl: dio.options.baseUrl));
           final resp = await fresh.post('/auth/refresh', data: {'refresh_token': refresh});
           final newAccess = resp.data['access_token'] as String;
-          await storage.saveTokens(access: newAccess, refresh: refresh);
+          await storage.saveTokens(
+            access: newAccess,
+            refresh: resp.data['refresh_token'] as String? ?? refresh,
+          );
 
           final retry = error.requestOptions;
           retry.headers['Authorization'] = 'Bearer $newAccess';
           final result = await dio.fetch(retry);
           return handler.resolve(result);
-        } on DioException {
-          await storage.clear();
+        } on DioException catch (e) {
+          // cuma hapus sesi kalo refresh token-nya beneran ditolak, bukan pas
+          // server lagi mati/gak kejangkau (nanti Face ID ilang padahal sesi masih ok)
+          if (e.response?.statusCode == 401) await storage.clear();
           return handler.next(error);
         }
       },

@@ -54,6 +54,19 @@ void main() {
     expect(find.text('EMAIL'), findsNothing);
   });
 
+  testWidgets('abis logout (access token dihapus, refresh masih ada) + Face ID aktif -> tetap gerbang',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'cf_refresh_token': 'refresh123',
+      'cf_biometric_enabled': true,
+    });
+    await tester.pumpWidget(wrap());
+    await tester.pumpAndSettle();
+
+    expect(find.text('Welcome back'), findsOneWidget);
+    expect(find.text('EMAIL'), findsNothing);
+  });
+
   testWidgets('"Use password instead" melewati gerbang ke form biasa', (tester) async {
     SharedPreferences.setMockInitialValues({
       'cf_access_token': 'token123',
