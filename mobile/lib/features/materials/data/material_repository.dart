@@ -39,6 +39,14 @@ class MaterialRepository {
     }
   }
 
+  Future<void> delete(int materialId) async {
+    try {
+      await _dio.delete('/materials/$materialId');
+    } on DioException catch (e) {
+      throw toApiException(e);
+    }
+  }
+
   // selalu generate ulang, bukan ambil hasil lama — biar jelas ini beneran manggil
   // groq baru, bukan cache diem2
   Future<MaterialSummary> summarize(int materialId) async {
@@ -71,6 +79,12 @@ class MaterialList extends AsyncNotifier<List<MaterialItem>> {
     await ref
         .read(materialRepositoryProvider)
         .upload(filePath: filePath, filename: filename, courseId: courseId);
+    ref.invalidateSelf();
+    await future;
+  }
+
+  Future<void> remove(int id) async {
+    await ref.read(materialRepositoryProvider).delete(id);
     ref.invalidateSelf();
     await future;
   }

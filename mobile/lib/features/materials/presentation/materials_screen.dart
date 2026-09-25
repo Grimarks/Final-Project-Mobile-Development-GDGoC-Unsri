@@ -139,8 +139,116 @@ class _MaterialCard extends StatelessWidget {
               ],
             ),
           ),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => _confirmDelete(context, material),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(8, 2, 4, 8),
+              child: Icon(Icons.delete_outline, size: 20, color: AppColors.inkMuted(0.5)),
+            ),
+          ),
           const Icon(Icons.chevron_right, color: AppColors.ink),
         ],
+      ),
+    );
+  }
+}
+
+Future<void> _confirmDelete(BuildContext context, MaterialItem material) {
+  return showDialog<void>(
+    context: context,
+    barrierColor: AppColors.ink.withOpacity(0.55),
+    builder: (_) => _DeleteDialog(material: material),
+  );
+}
+
+class _DeleteDialog extends ConsumerStatefulWidget {
+  const _DeleteDialog({required this.material});
+
+  final MaterialItem material;
+
+  @override
+  ConsumerState<_DeleteDialog> createState() => _DeleteDialogState();
+}
+
+class _DeleteDialogState extends ConsumerState<_DeleteDialog> {
+  bool _deleting = false;
+  String? _error;
+
+  Future<void> _delete() async {
+    setState(() {
+      _deleting = true;
+      _error = null;
+    });
+    try {
+      await ref.read(materialListProvider.notifier).remove(widget.material.id);
+      if (mounted) Navigator.of(context).pop();
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _deleting = false;
+          _error = e.toString();
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 320),
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              padding: const EdgeInsets.all(22),
+              decoration: Brutal.box(shadowOffset: 6),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Delete Material?', style: AppText.display(19)),
+                  const SizedBox(height: 12),
+                  Text(
+                    '"${widget.material.filename}" will be removed permanently.',
+                    style: AppText.body(12.5, weight: FontWeight.w600, color: AppColors.inkMuted(0.65)),
+                  ),
+                  if (_error != null) ...[
+                    const SizedBox(height: 10),
+                    Text(_error!, style: AppText.body(12, color: AppColors.danger, weight: FontWeight.w600)),
+                  ],
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: BrutalButton(
+                          label: 'Cancel',
+                          fill: AppColors.surface,
+                          labelColor: AppColors.ink,
+                          fontSize: 12,
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        flex: 2,
+                        child: BrutalButton(
+                          label: 'Delete',
+                          fill: AppColors.danger,
+                          fontSize: 12,
+                          loading: _deleting,
+                          onPressed: _delete,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

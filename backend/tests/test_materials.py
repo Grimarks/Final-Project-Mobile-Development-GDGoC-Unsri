@@ -150,3 +150,34 @@ async def test_summarize_requires_owned_material(auth_client, client):
 async def test_materials_require_auth(client):
     assert (await client.get("/materials")).status_code == 401
     assert (await client.post("/ai/materials/1/summarize")).status_code == 401
+
+
+async def test_delete_material(auth_client):
+    upload = await auth_client.post(
+        "/materials/upload", files={"file": ("gone.pdf", _MINIMAL_PDF, "application/pdf")}
+    )
+    material_id = upload.json()["id"]
+
+    resp = await auth_client.delete(f"/materials/{material_id}")
+    assert resp.status_code == 204
+
+    assert (await auth_client.get(f"/materials/{material_id}")).status_code == 404
+    ids = [m["id"] for m in (await auth_client.get("/materials")).json()]
+    assert material_id not in ids
+
+
+async def test_delete_material_requires_owner(auth_client, client):
+    other = await client.post(
+        "/auth/register",
+        json={"name": "Other", "email": "other-del@unsri.ac.id", "password": "Password123!"},
+    )
+    other_token = other.json()["tokens"]["access_token"]
+    upload = await client.post(
+        "/materials/upload",
+        files={"file": ("theirs.pdf", _MINIMAL_PDF, "application/pdf")},
+        headers={"Authorization": f"Bearer {other_token}"},
+    )
+    material_id = upload.json()["id"]
+
+    resp = await auth_client.delete(f"/materials/{material_id}")
+    assert resp.status_code == 404

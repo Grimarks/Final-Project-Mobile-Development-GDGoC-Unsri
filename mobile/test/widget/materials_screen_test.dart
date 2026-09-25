@@ -58,6 +58,36 @@ void main() {
     expect(find.byType(MaterialDetailScreen), findsOneWidget);
     expect(find.text('SUMMARIZE'), findsOneWidget);
   });
+
+  testWidgets('hapus materi lewat dialog konfirmasi', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          materialListProvider.overrideWith(_DeletableMaterialList.new),
+          courseListProvider.overrideWith(_FakeCourseList.new),
+        ],
+        child: const MaterialApp(home: MaterialsScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.delete_outline));
+    await tester.pumpAndSettle();
+    expect(find.text('Delete Material?'), findsOneWidget);
+
+    await tester.tap(find.text('DELETE'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('notes.pdf'), findsNothing);
+    expect(find.textContaining('No materials yet'), findsOneWidget);
+  });
+}
+
+class _DeletableMaterialList extends _FakeMaterialList {
+  @override
+  Future<void> remove(int id) async {
+    state = AsyncData(state.value!.where((m) => m.id != id).toList());
+  }
 }
 
 class _EmptyMaterialList extends MaterialList {
