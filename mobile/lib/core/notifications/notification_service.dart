@@ -11,7 +11,13 @@ class NotificationService {
 
   static const _sessionNotificationId = 999999; // cuma 1 slot, sesi aktif kan cuma 1
   static const _testNotificationId = 999998;
-  static int _taskNotificationId(int taskId) => 100000 + taskId;
+  // versi lama cuma 1 notif per task (pas deadline), id-nya masih dibatalin
+  // biar pengingat dari install sebelumnya gak nyangkut
+  static int _legacyTaskNotificationId(int taskId) => 100000 + taskId;
+  // 3 slot per task: H-1 hari, H-1 jam, pas deadline. range-nya jauh di atas
+  // id plan/sesi biar gak tabrakan
+  static int _taskNotificationId(int taskId, int slot) => 1000000 + taskId * 3 + slot;
+  static const _taskReminderOffsets = [Duration(days: 1), Duration(hours: 1), Duration.zero];
   // sesi plan yg di-accept: 200000 + urutan blok (plan cuma 1 aktif per hari)
   static const _planSessionBaseId = 200000;
   static const _planSessionMaxId = 299999;
@@ -41,28 +47,47 @@ class NotificationService {
   // bener walau tz.local belum ke-set ke zona asli device — gausah plugin tambahan
   tz.TZDateTime _asTz(DateTime dateTime) => tz.TZDateTime.from(dateTime, tz.local);
 
+  // pengingat bertahap biar sempet dikerjain: H-1 hari, H-1 jam, terus pas
+  // deadline. slot yg waktunya udah lewat di-skip
   Future<void> scheduleTaskDueReminder({
     required int taskId,
     required String title,
     required DateTime dueDate,
   }) async {
-    if (dueDate.isBefore(DateTime.now())) return; // udah lewat, ngapain dijadwalin
+    final now = DateTime.now();
+    if (dueDate.isBefore(now)) return; // udah lewat, ngapain dijadwalin
     await _ensureReady();
-    await _plugin.zonedSchedule(
-      _taskNotificationId(taskId),
-      'Task due: $title',
-      "It's due now — don't forget to wrap it up.",
-      _asTz(dueDate),
-      const NotificationDetails(
-        android: AndroidNotificationDetails('task_due', 'Task due reminders'),
-        iOS: DarwinNotificationDetails(),
-      ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-    );
+    for (var slot = 0; slot < _taskReminderOffsets.length; slot++) {
+      final offset = _taskReminderOffsets[slot];
+      final fireAt = dueDate.subtract(offset);
+      if (!fireAt.isAfter(now)) continue;
+      await _plugin.zonedSchedule(
+        _taskNotificationId(taskId, slot),
+        switch (slot) {
+          0 => 'Due tomorrow: $title',
+          1 => 'Due in 1 hour: $title',
+          _ => 'Task due: $title',
+        },
+        offset == Duration.zero
+            ? "It's due now — don't forget to wrap it up."
+            : 'Start now so you finish on time.',
+        _asTz(fireAt),
+        const NotificationDetails(
+          android: AndroidNotificationDetails('task_due', 'Task due reminders'),
+          iOS: DarwinNotificationDetails(),
+        ),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+      );
+    }
   }
 
-  Future<void> cancelTaskDueReminder(int taskId) => _plugin.cancel(_taskNotificationId(taskId));
+  Future<void> cancelTaskDueReminder(int taskId) async {
+    await _plugin.cancel(_legacyTaskNotificationId(taskId));
+    for (var slot = 0; slot < _taskReminderOffsets.length; slot++) {
+      await _plugin.cancel(_taskNotificationId(taskId, slot));
+    }
+  }
 
   // pengingat tiap sesi dari plan yg di-accept, muncul pas jam mulainya. pengingat
   // plan sebelumnya dibatalin dulu biar gak dobel kalo accept plan lain

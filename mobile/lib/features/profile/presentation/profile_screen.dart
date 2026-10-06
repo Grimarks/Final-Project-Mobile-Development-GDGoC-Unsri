@@ -10,6 +10,7 @@ import '../../../core/widgets/brutal_button.dart';
 import '../../../core/widgets/brutal_card.dart';
 import '../../../core/widgets/brutal_text_field.dart';
 import '../../../core/widgets/section_header.dart';
+import '../../auth/domain/password_rules.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../../auth/presentation/biometric_controller.dart';
 import '../../courses/data/course_repository.dart';
@@ -544,8 +545,9 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
       _showError('Isi semua field');
       return;
     }
-    if (_next.text.length < 8) {
-      _showError('Password baru minimal 8 karakter');
+    if (!isStrongPassword(_next.text)) {
+      _showError('Password baru harus mengandung huruf besar, huruf kecil, angka, dan simbol '
+          '(minimal 8 karakter)');
       return;
     }
     if (_next.text != _confirm.text) {

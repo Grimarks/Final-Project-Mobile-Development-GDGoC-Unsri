@@ -177,7 +177,7 @@ async def test_change_password_with_wrong_current_password_rejected(client):
     access = reg.json()["tokens"]["access_token"]
     resp = await client.post(
         "/auth/change-password",
-        json={"current_password": "salahsalah", "new_password": "newpassword123"},
+        json={"current_password": "salahsalah", "new_password": "NewPassword123!"},
         headers={"Authorization": f"Bearer {access}"},
     )
     assert resp.status_code == 400
@@ -191,7 +191,7 @@ async def test_change_password_then_login_with_new_password(client):
     access = reg.json()["tokens"]["access_token"]
     resp = await client.post(
         "/auth/change-password",
-        json={"current_password": "Password123!", "new_password": "newpassword123"},
+        json={"current_password": "Password123!", "new_password": "NewPassword123!"},
         headers={"Authorization": f"Bearer {access}"},
     )
     assert resp.status_code == 204
@@ -202,6 +202,26 @@ async def test_change_password_then_login_with_new_password(client):
     assert old_login.status_code == 401
 
     new_login = await client.post(
-        "/auth/login", json={"email": "i@unsri.ac.id", "password": "newpassword123"}
+        "/auth/login", json={"email": "i@unsri.ac.id", "password": "NewPassword123!"}
     )
     assert new_login.status_code == 200
+
+
+async def test_change_password_rejects_weak_new_password(client):
+    reg = await client.post(
+        "/auth/register",
+        json={"name": "Rel", "email": "weak@unsri.ac.id", "password": "Password123!"},
+    )
+    access = reg.json()["tokens"]["access_token"]
+    resp = await client.post(
+        "/auth/change-password",
+        json={"current_password": "Password123!", "new_password": "newpassword123"},
+        headers={"Authorization": f"Bearer {access}"},
+    )
+    assert resp.status_code == 422
+
+    # password lama masih berlaku
+    login = await client.post(
+        "/auth/login", json={"email": "weak@unsri.ac.id", "password": "Password123!"}
+    )
+    assert login.status_code == 200

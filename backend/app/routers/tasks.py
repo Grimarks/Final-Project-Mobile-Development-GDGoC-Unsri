@@ -59,7 +59,7 @@ async def _get_owned(task_id: int, user: User, db: AsyncSession) -> Task:
     return task
 
 
-async def _check_course(course_id: int | None, user: User, db: AsyncSession) -> None:
+async def check_course(course_id: int | None, user: User, db: AsyncSession) -> None:
     if course_id is None:
         return
     owned = (
@@ -107,7 +107,7 @@ async def create_task(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await _check_course(body.course_id, user, db)
+    await check_course(body.course_id, user, db)
     task = Task(user_id=user.id, **body.model_dump())
     db.add(task)
     await db.commit()
@@ -124,7 +124,7 @@ async def update_task(
     task = await _get_owned(task_id, user, db)
     patch = body.model_dump(exclude_unset=True)
     if "course_id" in patch:
-        await _check_course(patch["course_id"], user, db)
+        await check_course(patch["course_id"], user, db)
     for field, value in patch.items():
         setattr(task, field, value)
     if task.status == "done":

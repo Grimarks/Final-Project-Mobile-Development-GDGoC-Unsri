@@ -211,3 +211,25 @@ async def test_delete_material_requires_owner(auth_client, client):
 
     resp = await auth_client.delete(f"/materials/{material_id}")
     assert resp.status_code == 404
+
+
+async def test_upload_rejects_course_of_other_user(auth_client, client):
+    other = await client.post(
+        "/auth/register",
+        json={"name": "B", "email": "b-course@unsri.ac.id", "password": "Password123!"},
+    )
+    other_token = other.json()["tokens"]["access_token"]
+    foreign = (
+        await client.post(
+            "/courses",
+            json={"name": "Punya B", "color": "#4C6FFF"},
+            headers={"Authorization": f"Bearer {other_token}"},
+        )
+    ).json()
+
+    resp = await auth_client.post(
+        "/materials/upload",
+        data={"course_id": str(foreign["id"])},
+        files={"file": ("notes.pdf", _MINIMAL_PDF, "application/pdf")},
+    )
+    assert resp.status_code == 404

@@ -89,3 +89,24 @@ async def test_confirm_tasks_requires_auth(client):
 async def test_confirm_tasks_rejects_empty_list(auth_client):
     resp = await auth_client.post("/ai/chat/confirm-tasks", json={"tasks": []})
     assert resp.status_code == 422
+
+
+def test_date_only_due_date_is_end_of_day_wib():
+    # "2026-10-07" dari AI = deadline akhir hari itu (WIB), bukan jam 7 pagi
+    from datetime import timezone
+
+    from app.schemas.ai import TaskCandidate
+
+    candidate = TaskCandidate.model_validate(
+        {"course": "Fisika", "title": "Kuis bab 2", "due_date": "2026-10-07"}
+    )
+    assert candidate.due_date.astimezone(timezone.utc).isoformat() == "2026-10-07T16:59:00+00:00"
+
+
+def test_full_datetime_due_date_untouched():
+    from app.schemas.ai import TaskCandidate
+
+    candidate = TaskCandidate.model_validate(
+        {"course": "Fisika", "title": "Kuis", "due_date": "2026-10-07T03:00:00Z"}
+    )
+    assert candidate.due_date.hour == 3

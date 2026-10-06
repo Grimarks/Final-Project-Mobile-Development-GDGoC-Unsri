@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 
+from app.core.config import settings
 from app.models.chat_message import ChatMessage
 from app.schemas.ai import TaskCandidate
 from app.services.groq_service import GroqUnavailable, complete_json, complete_text
@@ -32,6 +33,12 @@ SYSTEM_PROMPT = (
 # jaga-jaga kalo Groq ngeyel gak nurut prompt & nulis draf jadwal panjang
 _MAX_REPLY_CHARS = 420
 
+# histori yg dikirim ke Groq dibatesin: makin panjang chat, makin banyak token per
+# pesan -> cepet kena rate limit free tier. yg lama jarang relevan buat balasan berikutnya
+MAX_HISTORY_MESSAGES = 20
+# ekstrak task butuh konteks lebih jauh (matkul bisa disebut di awal chat)
+MAX_EXTRACT_MESSAGES = 40
+
 # fallback pas Groq mati/gagal — jangan sampe user liat error mentah
 _HEURISTIC_REPLIES = [
     "Oke, dicatat! Berapa jam luang yang kamu punya hari ini, dan mau mulai jam berapa?",
@@ -46,7 +53,9 @@ def _heuristic_reply(user_turn_index: int) -> str:
 
 def _to_groq_messages(history: list[ChatMessage]) -> list[dict[str, str]]:
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-    messages.extend({"role": m.role, "content": m.content} for m in history)
+    messages.extend(
+        {"role": m.role, "content": m.content} for m in history[-MAX_HISTORY_MESSAGES:]
+    )
     return messages
 
 
@@ -92,8 +101,12 @@ EXTRACT_SYSTEM_PROMPT = (
 
 
 def build_extract_prompt(history: list[ChatMessage]) -> str:
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    lines = [f"{'Mahasiswa' if m.role == 'user' else 'AI'}: {m.content}" for m in history]
+    # tanggal versi mahasiswa (WIB), bukan UTC — jam 00-07 WIB UTC-nya masih kemaren
+    today = datetime.now(settings.tz).strftime("%Y-%m-%d")
+    lines = [
+        f"{'Mahasiswa' if m.role == 'user' else 'AI'}: {m.content}"
+        for m in history[-MAX_EXTRACT_MESSAGES:]
+    ]
     conversation = "\n".join(lines) if lines else "(percakapan kosong)"
     return f"Hari ini: {today}\n\nPercakapan:\n{conversation}\n\nEkstrak daftar tugasnya."
 

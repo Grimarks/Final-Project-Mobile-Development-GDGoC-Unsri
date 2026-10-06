@@ -1,5 +1,6 @@
 """Config app, ambil dari env / file .env."""
 from functools import lru_cache
+from zoneinfo import ZoneInfo
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -21,9 +22,16 @@ class Settings(BaseSettings):
 
     cors_origins: str = "*"
 
+    # zona waktu mahasiswa — buat ngartiin tanggal polos dari AI ("besok", "2026-10-07")
+    app_timezone: str = "Asia/Jakarta"
+
     @property
     def groq_enabled(self) -> bool:
         return bool(self.groq_api_key)
+
+    @property
+    def tz(self) -> ZoneInfo:
+        return ZoneInfo(self.app_timezone)
 
 
 @lru_cache

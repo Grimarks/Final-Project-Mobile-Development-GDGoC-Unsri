@@ -5,6 +5,22 @@ from pydantic import BaseModel, EmailStr, Field, field_validator
 _SPECIAL_CHAR = re.compile(r"[^A-Za-z0-9]")
 
 
+def ensure_strong_password(value: str) -> str:
+    """Kayak password mobile banking — wajib gede-kecil, angka, sama simbol.
+    Dipake register DAN ganti password, biar aturannya gak beda."""
+    if (
+        not any(c.isupper() for c in value)
+        or not any(c.islower() for c in value)
+        or not any(c.isdigit() for c in value)
+        or not _SPECIAL_CHAR.search(value)
+    ):
+        raise ValueError(
+            "Password harus mengandung huruf besar, huruf kecil, angka, dan simbol "
+            "(contoh: !@#$%)"
+        )
+    return value
+
+
 class RegisterRequest(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     email: EmailStr
@@ -13,18 +29,7 @@ class RegisterRequest(BaseModel):
     @field_validator("password")
     @classmethod
     def _password_must_be_strong(cls, value: str) -> str:
-        """Kayak password mobile banking — wajib gede-kecil, angka, sama simbol."""
-        if (
-            not any(c.isupper() for c in value)
-            or not any(c.islower() for c in value)
-            or not any(c.isdigit() for c in value)
-            or not _SPECIAL_CHAR.search(value)
-        ):
-            raise ValueError(
-                "Password harus mengandung huruf besar, huruf kecil, angka, dan simbol "
-                "(contoh: !@#$%)"
-            )
-        return value
+        return ensure_strong_password(value)
 
 
 class LoginRequest(BaseModel):
@@ -44,6 +49,11 @@ class UpdateProfileRequest(BaseModel):
 class ChangePasswordRequest(BaseModel):
     current_password: str
     new_password: str = Field(min_length=8, max_length=128)
+
+    @field_validator("new_password")
+    @classmethod
+    def _new_password_must_be_strong(cls, value: str) -> str:
+        return ensure_strong_password(value)
 
 
 class TokenPair(BaseModel):

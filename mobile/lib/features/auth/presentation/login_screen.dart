@@ -8,6 +8,7 @@ import '../../../core/theme/colors.dart';
 import '../../../core/theme/text_styles.dart';
 import '../../../core/widgets/brutal_button.dart';
 import '../../../core/widgets/brutal_text_field.dart';
+import '../domain/password_rules.dart';
 import 'auth_controller.dart';
 import 'biometric_controller.dart';
 
@@ -32,11 +33,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   // juga lewat loading->data(null) pas belum login sama sekali)
   bool _justSubmittedRegister = false;
 
-  // syarat kuat kayak password mobile banking, mesti sama persis sama backend
-  // (app/schemas/auth.py) biar gak beda validasi
-  static final _strongPassword =
-      RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$');
-
   @override
   void dispose() {
     _name.dispose();
@@ -60,7 +56,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _submit() async {
     final controller = ref.read(authControllerProvider.notifier);
     if (_isRegister) {
-      if (!_strongPassword.hasMatch(_password.text)) {
+      if (!isStrongPassword(_password.text)) {
         _showSnack(
           'Password must have upper & lowercase letters, a number, and a symbol (e.g. !@#\$%).',
           danger: true,

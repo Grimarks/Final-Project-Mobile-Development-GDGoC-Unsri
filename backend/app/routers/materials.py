@@ -8,6 +8,7 @@ from app.core.db import get_db
 from app.core.security import get_current_user
 from app.models.material import Material
 from app.models.user import User
+from app.routers.tasks import check_course
 from app.schemas.material import MaterialOut
 from app.services.materials_service import extract_pdf_text
 
@@ -37,6 +38,9 @@ async def upload_material(
 ):
     if not (file.filename or "").lower().endswith(".pdf"):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Hanya menerima file PDF")
+
+    # jangan sampe materi nempel ke course punya user lain
+    await check_course(course_id, user, db)
 
     data = await file.read()
     if len(data) > MAX_BYTES:

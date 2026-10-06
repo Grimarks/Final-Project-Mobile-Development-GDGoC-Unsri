@@ -99,3 +99,18 @@ async def test_plan_from_chat_uses_heuristic_and_archives(auth_client, db_sessio
     rows = (await db_session.execute(sa_select(AIGenerated))).scalars().all()
     assert len(rows) == 1
     assert rows[0].type == "plan"
+
+
+def test_groq_only_gets_recent_history():
+    # chat panjang jangan dikirim utuh ke Groq tiap pesan (boros token, kena rate limit)
+    from app.services.chat_service import MAX_HISTORY_MESSAGES, SYSTEM_PROMPT, _to_groq_messages
+
+    history = [
+        ChatMessage(role="user" if i % 2 == 0 else "assistant", content=f"pesan {i}")
+        for i in range(50)
+    ]
+    messages = _to_groq_messages(history)
+
+    assert messages[0] == {"role": "system", "content": SYSTEM_PROMPT}
+    assert len(messages) == MAX_HISTORY_MESSAGES + 1
+    assert messages[-1]["content"] == "pesan 49"

@@ -1,7 +1,12 @@
-from datetime import datetime
+import re
+from datetime import date, datetime, time, timezone
 from typing import Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+from app.core.config import settings
+
+_DATE_ONLY = re.compile(r"\d{4}-\d{2}-\d{2}")
 
 
 class PlanRequest(BaseModel):
@@ -108,6 +113,17 @@ class TaskCandidate(BaseModel):
     type: Literal["assignment", "exam", "quiz"] = "assignment"
     difficulty: Literal["easy", "medium", "hard"] = "medium"
     due_date: datetime | None = None
+
+    @field_validator("due_date", mode="before")
+    @classmethod
+    def _date_only_is_end_of_local_day(cls, value: object) -> object:
+        # AI ngasih "YYYY-MM-DD" polos. kalo dibiarin jadi 00:00 UTC = jam 7 pagi WIB,
+        # task-nya udah "overdue" dari pagi. deadline tanggal doang = akhir hari itu
+        if isinstance(value, str) and _DATE_ONLY.fullmatch(value.strip()):
+            day = date.fromisoformat(value.strip())
+            local = datetime.combine(day, time(23, 59), tzinfo=settings.tz)
+            return local.astimezone(timezone.utc)
+        return value
 
 
 class ExtractTasksResponse(BaseModel):
