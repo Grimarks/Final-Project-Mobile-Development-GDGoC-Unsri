@@ -18,6 +18,8 @@ class Settings(BaseSettings):
 
     groq_api_key: str | None = None
     groq_model: str = "openai/gpt-oss-120b"
+    # model yg bisa baca gambar, buat Snap & Go (foto pengumuman tugas)
+    groq_vision_model: str = "qwen/qwen3.8-27b"
     groq_base_url: str = "https://api.groq.com/openai/v1"
 
     cors_origins: str = "*"

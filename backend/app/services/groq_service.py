@@ -50,18 +50,21 @@ async def _backoff(exc: Exception, attempt: int, retries: int) -> None:
 
 async def complete_json(
     system_prompt: str,
-    user_prompt: str,
+    user_prompt: str | list[dict[str, Any]],
     *,
     max_tokens: int = 1600,
     temperature: float = 0.3,
     retries: int = 2,
+    model: str | None = None,
 ) -> Any:
-    """Panggil Groq, balikin hasilnya yg udah diparse jadi objek Python."""
+    """Panggil Groq, balikin hasilnya yg udah diparse jadi objek Python.
+    `user_prompt` boleh list content part (teks + image_url) buat model vision."""
     if not settings.groq_enabled:
         raise GroqUnavailable("GROQ_API_KEY belum diisi")
 
+    model = model or settings.groq_model
     payload = {
-        "model": settings.groq_model,
+        "model": model,
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
@@ -70,7 +73,7 @@ async def complete_json(
         "max_tokens": max_tokens,
         "response_format": {"type": "json_object"},
     }
-    if settings.groq_model.startswith("openai/gpt-oss"):
+    if model.startswith("openai/gpt-oss"):
         # token "mikir" ikut ngabisin kuota TPM free tier -> gampang kena 429
         payload["reasoning_effort"] = "low"
     headers = {"Authorization": f"Bearer {settings.groq_api_key}"}

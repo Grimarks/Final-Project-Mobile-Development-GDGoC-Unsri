@@ -8,6 +8,7 @@ import '../../features/dashboard/presentation/home_screen.dart';
 import '../../features/materials/presentation/materials_screen.dart';
 import '../../features/planner/presentation/planner_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
+import '../../features/snap/presentation/snap_screen.dart';
 import '../../features/study_session/presentation/study_screen.dart';
 import '../../features/tasks/presentation/tasks_screen.dart';
 import '../widgets/brutal_bottom_nav.dart';
@@ -31,6 +32,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
+      // Snap & Go layar penuh (tanpa bottom nav), dibuka dari Tasks & Home
+      GoRoute(path: '/snap', builder: (_, __) => const SnapScreen()),
       // biar bottom nav-nya nempel terus di semua tab utama
       ShellRoute(
         builder: (context, state, child) => _NavShell(state: state, child: child),

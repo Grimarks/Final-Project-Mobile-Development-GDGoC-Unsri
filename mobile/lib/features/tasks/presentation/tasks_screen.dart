@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/brutal_decorations.dart';
 import '../../../core/theme/colors.dart';
@@ -23,8 +24,22 @@ class TasksScreen extends ConsumerWidget {
     final visibleCount = ref.watch(filteredTasksProvider).length;
 
     return Scaffold(
-      floatingActionButton: _AddTaskFab(
-        onTap: () => showAddTaskSheet(context),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Snap & Go: foto pengumuman -> task
+          _AddTaskFab(
+            onTap: () => context.push('/snap'),
+            fill: AppColors.accent,
+            child: const Icon(Icons.photo_camera_outlined, size: 26, color: AppColors.ink),
+          ),
+          const SizedBox(height: 14),
+          _AddTaskFab(
+            onTap: () => showAddTaskSheet(context),
+            child: Text('+',
+                style: AppText.display(26, weight: FontWeight.w900, color: Colors.white)),
+          ),
+        ],
       ),
       body: SafeArea(
         bottom: false,
@@ -233,11 +248,13 @@ class _TaskCard extends ConsumerWidget {
   }
 }
 
-// fab kotak 54x54 + shadow keras, bukan FAB bundar material
+// fab kotak 54x54 + shadow keras, bukan FAB bundar material (dipake + sama Snap)
 class _AddTaskFab extends StatelessWidget {
-  const _AddTaskFab({required this.onTap});
+  const _AddTaskFab({required this.onTap, required this.child, this.fill = AppColors.primary});
 
   final VoidCallback onTap;
+  final Widget child;
+  final Color fill;
 
   @override
   Widget build(BuildContext context) {
@@ -247,10 +264,8 @@ class _AddTaskFab extends StatelessWidget {
         width: 54,
         height: 54,
         alignment: Alignment.center,
-        decoration: Brutal.box(fill: AppColors.primary),
-        child: Text('+',
-            style: AppText.display(26,
-                weight: FontWeight.w900, color: Colors.white)),
+        decoration: Brutal.box(fill: fill),
+        child: child,
       ),
     );
   }

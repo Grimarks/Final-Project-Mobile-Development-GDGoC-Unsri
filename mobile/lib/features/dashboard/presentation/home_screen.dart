@@ -45,6 +45,8 @@ class HomeScreen extends ConsumerWidget {
               _AiBanner(
                 openCount: tasksAsync.valueOrNull?.where((t) => !t.isDone).length ?? 0,
               ),
+              const SizedBox(height: 14),
+              const _SnapCard(),
               const SizedBox(height: 20),
               _StatsRow(
                 tasks: tasksAsync.valueOrNull ?? const [],
@@ -171,6 +173,45 @@ class _AiBanner extends StatelessWidget {
         ),
         const Positioned(left: 16, top: -14, child: AiTag(rotated: true)),
       ],
+    );
+  }
+}
+
+// pintu masuk Snap & Go: foto pengumuman tugas -> AI yg nyatet
+class _SnapCard extends StatelessWidget {
+  const _SnapCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return BrutalCard(
+      onTap: () => context.push('/snap'),
+      shadowOffset: 3,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            alignment: Alignment.center,
+            decoration: Brutal.flat(fill: AppColors.accent),
+            child: const Icon(Icons.photo_camera_outlined, size: 20, color: AppColors.ink),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Snap & Go', style: AppText.display(14, weight: FontWeight.w700)),
+                const SizedBox(height: 2),
+                Text('Photo an announcement, AI adds the tasks',
+                    style: AppText.body(11.5,
+                        weight: FontWeight.w600, color: AppColors.inkMuted(0.55))),
+              ],
+            ),
+          ),
+          Text('→', style: AppText.display(18)),
+        ],
+      ),
     );
   }
 }

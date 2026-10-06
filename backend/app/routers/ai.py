@@ -1,7 +1,7 @@
 import json
 from datetime import date, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -28,9 +28,11 @@ from app.schemas.ai import (
     RandomPlanRequest,
     QuizResponse,
     SummaryResponse,
+    TaskCandidate,
 )
 from app.schemas.task import TaskOut
-from app.services import chat_service, materials_service
+from app.services import chat_service, materials_service, snap_service
+from app.services.groq_service import GroqUnavailable
 from app.services.planning_service import (
     AdjustFailed,
     adjust_plan,
@@ -290,24 +292,65 @@ async def extract_chat_tasks(
         .all()
     )
     candidates = await chat_service.extract_tasks(history)
+    return ExtractTasksResponse(tasks=await _drop_existing(candidates, user, db))
 
-    existing = list(
-        (
-            await db.execute(
-                select(Task).options(selectinload(Task.course)).where(Task.user_id == user.id)
-            )
-        )
-        .scalars()
-        .all()
-    )
+
+async def _drop_existing(
+    candidates: list[TaskCandidate], user: User, db: AsyncSession
+) -> list[TaskCandidate]:
+    """Buang usulan yg udah ada sebagai task terbuka (course + judul sama)."""
     # yg udah done boleh diusulin lagi (mau latihan lagi), cuma yg masih kebuka yg di-skip
     existing_keys = {
         ((t.course.name if t.course else "").lower(), t.title.lower())
-        for t in existing
+        for t in await _user_tasks(user, db)
         if t.status != "done"
     }
-    fresh = [c for c in candidates if (c.course.lower(), c.title.lower()) not in existing_keys]
-    return ExtractTasksResponse(tasks=fresh)
+    return [c for c in candidates if (c.course.lower(), c.title.lower()) not in existing_keys]
+
+
+SNAP_MAX_IMAGE_BYTES = 3 * 1024 * 1024  # base64-nya ~4 MB = batas request gambar Groq
+SNAP_MAX_TEXT_CHARS = 4000
+
+
+@router.post("/snap/extract", response_model=ExtractTasksResponse)
+async def snap_extract(
+    image: UploadFile | None = File(default=None),
+    text: str | None = Form(default=None),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Snap & Go: foto pengumuman / screenshot grup kelas / teks paste -> usulan task.
+    Belom kesimpen — mobile nampilin review dulu, simpennya lewat /ai/chat/confirm-tasks."""
+    text = (text or "").strip() or None
+    data = await image.read() if image is not None else None
+    if not data and text is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Kirim foto atau teks pengumuman")
+    if text is not None and len(text) > SNAP_MAX_TEXT_CHARS:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, f"Teks maksimal {SNAP_MAX_TEXT_CHARS} karakter"
+        )
+
+    mime = None
+    if data:
+        if len(data) > SNAP_MAX_IMAGE_BYTES:
+            raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "Foto maksimal 3 MB")
+        mime = snap_service.detect_image_mime(data)
+        if mime is None:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST, "Format foto tidak didukung (pakai JPG/PNG/WebP)"
+            )
+
+    courses = (await db.execute(select(Course.name).where(Course.user_id == user.id))).scalars()
+    try:
+        candidates = await snap_service.extract_from_snap(
+            image=data or None, image_mime=mime, text=text, course_names=list(courses)
+        )
+    except GroqUnavailable as exc:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "AI sedang tidak tersedia, coba lagi sebentar lagi",
+        ) from exc
+    return ExtractTasksResponse(tasks=await _drop_existing(candidates, user, db))
 
 
 @router.post("/chat/confirm-tasks", response_model=list[TaskOut])

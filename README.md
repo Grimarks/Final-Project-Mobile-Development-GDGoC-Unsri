@@ -37,6 +37,13 @@ Dibangun sebagai final project mata kuliah Mobile Development.
 - **Adjust plan aktif** — kasih instruksi bebas ("pindahkan sesi pertama ke sore"), AI sesuaikan jadwal yang sedang berjalan
 - **Chat bebas** — ngobrol dulu soal beban tugas/mood, lalu "Generate plan from this chat"; AI juga bisa nangkep task baru dari obrolan buat direview & disimpan sebelum jadwal dibuat
 
+**Snap & Go:**
+- Foto pengumuman / papan tulis, pilih screenshot grup kelas, atau paste teks pesan →
+  AI (model vision Groq) mengekstrak tugas lengkap dengan mata kuliah & deadline →
+  review & centang → langsung masuk Tasks plus pengingat deadline
+- Nama mata kuliah dicocokkan ke course yang sudah ada; tanggal relatif ("Rabu depan",
+  "besok jam 23.59") diubah ke tanggal pasti dalam WIB
+
 **Fokus & progres:**
 - Timer Pomodoro (dengan tombol fast-forward buat demo) + feedback pasca-sesi (easy / normal / hard)
 - Notifikasi lokal buat deadline tugas & sesi fokus yang selesai (tetap muncul walau
@@ -254,6 +261,7 @@ server — client tidak menghitung ulang.
 | DELETE | `/ai/chat/history` | — | `204` hapus histori (tombol "Start over") |
 | POST | `/ai/chat/extract-tasks` | — | `{tasks[]}` — AI usulkan course/task baru dari histori chat, belum disimpan |
 | POST | `/ai/chat/confirm-tasks` | `{tasks[]}` | daftar `Task` — simpan task yang sudah direview user |
+| POST | `/ai/snap/extract` | multipart: `image` (JPG/PNG/WebP, maks 3 MB) dan/atau `text` | `{tasks[]}` — Snap & Go, usulan task dari foto/teks pengumuman; `503` kalau AI tidak tersedia |
 | POST | `/ai/materials/{id}/summarize` | — | `{generated_by, summary, key_points[]}` |
 | POST | `/ai/materials/{id}/quiz` | — | `{generated_by, questions[]}` |
 
