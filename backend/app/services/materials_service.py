@@ -70,10 +70,27 @@ async def summarize(material_id: int, text: str) -> SummaryResponse:
         )
 
 
+def _valid_questions(items: object) -> list[QuizQuestion]:
+    """Soal yg rusak (opsi kurang, index ngaco) dibuang satu-satu, jangan gagalin semuanya."""
+    if not isinstance(items, list):
+        raise ValueError("field 'questions' bukan list")
+    questions = []
+    for item in items:
+        try:
+            questions.append(QuizQuestion.model_validate(item))
+        except ValueError:
+            continue
+    return questions[:10]
+
+
 async def make_quiz(material_id: int, text: str) -> QuizResponse:
+    if not text.strip():
+        # PDF scan / kosong: jangan kirim ke LLM, ntar soalnya dikarang sendiri
+        return QuizResponse(generated_by="heuristic", material_id=material_id, questions=[])
+
     try:
         raw = await complete_json(QUIZ_SYSTEM, text[:MAX_CHARS_TO_LLM], temperature=0.5)
-        questions = [QuizQuestion.model_validate(q) for q in raw["questions"]][:10]
+        questions = _valid_questions(raw["questions"])
         if not questions:
             raise ValueError("kuis kosong")
         return QuizResponse(

@@ -128,6 +128,36 @@ async def test_quiz_material_heuristic_fallback(auth_client):
     resp = await auth_client.post(f"/ai/materials/{material_id}/quiz")
     assert resp.status_code == 200, resp.text
     assert resp.json()["generated_by"] == "heuristic"
+    # PDF scan: teks kosong -> gak ada soal, mobile yg nampilin pesan
+    assert resp.json()["questions"] == []
+
+
+async def test_quiz_skips_llm_when_text_empty(monkeypatch):
+    from app.services import materials_service
+
+    async def boom(*_args, **_kwargs):
+        raise AssertionError("LLM tidak boleh dipanggil untuk teks kosong")
+
+    monkeypatch.setattr(materials_service, "complete_json", boom)
+    result = await materials_service.make_quiz(1, "   ")
+    assert result.questions == []
+
+
+async def test_quiz_drops_questions_with_bad_correct_index(monkeypatch):
+    from app.services import materials_service
+
+    async def fake_llm(*_args, **_kwargs):
+        return {
+            "questions": [
+                {"question": "Q1", "options": ["a", "b", "c", "d"], "correct_index": 4},
+                {"question": "Q2", "options": ["a", "b", "c", "d"], "correct_index": 2},
+            ]
+        }
+
+    monkeypatch.setattr(materials_service, "complete_json", fake_llm)
+    result = await materials_service.make_quiz(1, "Materi kuliah yang cukup panjang.")
+    assert result.generated_by == "groq"
+    assert [q.question for q in result.questions] == ["Q2"]
 
 
 async def test_summarize_requires_owned_material(auth_client, client):

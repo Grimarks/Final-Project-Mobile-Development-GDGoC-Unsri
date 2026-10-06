@@ -122,12 +122,51 @@ class TaskList extends AsyncNotifier<List<Task>> {
   // centang/uncentang task dari kartu dashboard atau list
   Future<void> toggleDone(Task task) async {
     final next = task.isDone ? TaskStatus.notStarted : TaskStatus.done;
+    await ref.read(taskRepositoryProvider).update(task.id, {'status': next});
+    final notifs = ref.read(notificationServiceProvider);
     if (next == TaskStatus.done) {
       HapticFeedback.mediumImpact(); // getar dikit pas task kelar
       // udah kelar, gaperlu diingetin soal deadline lagi
-      await ref.read(notificationServiceProvider).cancelTaskDueReminder(task.id);
+      await notifs.cancelTaskDueReminder(task.id);
+    } else if (task.dueDate != null) {
+      // di-undo / uncheck -> pengingatnya dipasang lagi
+      await notifs.scheduleTaskDueReminder(
+          taskId: task.id, title: task.title, dueDate: task.dueDate!);
     }
-    await ref.read(taskRepositoryProvider).update(task.id, {'status': next});
+    ref.invalidateSelf();
+    await future;
+  }
+
+  // sesi fokus dimulai -> task yg belom disentuh jadi "In Progress"
+  Future<void> markInProgress(Task task) async {
+    if (task.status != TaskStatus.notStarted) return;
+    await ref.read(taskRepositoryProvider).update(task.id, {'status': TaskStatus.inProgress});
+    ref.invalidateSelf();
+    await future;
+  }
+
+  Future<void> edit(
+    Task task, {
+    required String title,
+    int? courseId,
+    required String type,
+    required String difficulty,
+    DateTime? dueDate,
+  }) async {
+    final updated = await ref.read(taskRepositoryProvider).update(task.id, {
+      'title': title,
+      'course_id': courseId,
+      'type': type,
+      'difficulty': difficulty,
+      'due_date': dueDate?.toUtc().toIso8601String(),
+    });
+    // deadline bisa berubah, pengingat lama dibuang dulu baru dipasang ulang
+    final notifs = ref.read(notificationServiceProvider);
+    await notifs.cancelTaskDueReminder(task.id);
+    if (updated.dueDate != null && !updated.isDone) {
+      await notifs.scheduleTaskDueReminder(
+          taskId: updated.id, title: updated.title, dueDate: updated.dueDate!);
+    }
     ref.invalidateSelf();
     await future;
   }

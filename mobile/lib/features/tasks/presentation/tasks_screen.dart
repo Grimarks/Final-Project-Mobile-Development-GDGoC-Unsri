@@ -10,6 +10,7 @@ import '../../../core/widgets/priority_block.dart';
 import '../data/task_repository.dart';
 import '../domain/task.dart';
 import 'add_task_sheet.dart';
+import 'task_actions.dart';
 
 class TasksScreen extends ConsumerWidget {
   const TasksScreen({super.key});
@@ -64,7 +65,10 @@ class TasksScreen extends ConsumerWidget {
                 data: (_) {
                   if (grouped.isEmpty) {
                     return Center(
-                      child: Text('No tasks match this filter.',
+                      child: Text(
+                          filter == null
+                              ? 'No tasks yet — tap + to add one.'
+                              : 'No tasks match this filter.',
                           style: AppText.body(13,
                               weight: FontWeight.w600,
                               color: AppColors.inkMuted(0.5))),
@@ -172,7 +176,7 @@ class _TaskCard extends ConsumerWidget {
       shadowOffset: 3,
       padding: const EdgeInsets.all(12),
       leftStripe: task.courseColor,
-      onTap: () => ref.read(taskListProvider.notifier).toggleDone(task),
+      onTap: () => toggleTaskWithUndo(context, ref, task),
       child: Row(
         children: [
           Expanded(
@@ -214,6 +218,15 @@ class _TaskCard extends ConsumerWidget {
           ),
           const SizedBox(width: 10),
           PriorityBlock(priority: task.priority, fontSize: 9),
+          // tap kartu = centang, edit/hapus lewat menu ini
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => showTaskActions(context, ref, task),
+            child: const Padding(
+              padding: EdgeInsets.only(left: 6),
+              child: Icon(Icons.more_vert, size: 20, color: AppColors.ink),
+            ),
+          ),
         ],
       ),
     );

@@ -17,6 +17,7 @@ import '../../planner/domain/plan.dart';
 import '../../study_session/data/session_repository.dart';
 import '../../tasks/data/task_repository.dart';
 import '../../tasks/domain/task.dart';
+import '../../tasks/presentation/task_actions.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -68,7 +69,7 @@ class HomeScreen extends ConsumerWidget {
                 ),
                 error: (error, _) => _ErrorBox(message: error.toString()),
                 data: (tasks) {
-                  final focus = tasks.where((t) => !t.isDone).take(3).toList();
+                  final focus = rankOpenTasks(tasks).take(3).toList();
                   if (focus.isEmpty) return const _EmptyState();
                   return Column(
                     children: [
@@ -280,7 +281,7 @@ class _FocusCard extends ConsumerWidget {
       child: Row(
         children: [
           GestureDetector(
-            onTap: () => ref.read(taskListProvider.notifier).toggleDone(task),
+            onTap: () => toggleTaskWithUndo(context, ref, task),
             child: Container(
               width: 20,
               height: 20,

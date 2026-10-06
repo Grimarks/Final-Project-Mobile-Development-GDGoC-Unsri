@@ -38,6 +38,22 @@ void main() {
 
     expect(find.text('1 tasks'), findsOneWidget);
   });
+
+  testWidgets('menu titik tiga menawarkan edit & hapus task', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [taskListProvider.overrideWith(_FakeTaskList.new)],
+        child: MaterialApp(home: const TasksScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
+
+    expect(find.text('EDIT TASK'), findsOneWidget);
+    expect(find.text('DELETE TASK'), findsOneWidget);
+  });
 }
 
 class _FakeTaskList extends TaskList {

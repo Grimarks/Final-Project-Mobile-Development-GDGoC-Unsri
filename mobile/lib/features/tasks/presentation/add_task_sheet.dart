@@ -12,16 +12,19 @@ import '../../courses/data/course_repository.dart';
 import '../data/task_repository.dart';
 import '../domain/task.dart';
 
-Future<void> showAddTaskSheet(BuildContext context) {
+// `task` diisi = mode edit (form udah keisi data task itu)
+Future<void> showAddTaskSheet(BuildContext context, {Task? task}) {
   return showDialog<void>(
     context: context,
     barrierColor: AppColors.ink.withOpacity(0.55),
-    builder: (_) => const _AddTaskDialog(),
+    builder: (_) => _AddTaskDialog(task: task),
   );
 }
 
 class _AddTaskDialog extends ConsumerStatefulWidget {
-  const _AddTaskDialog();
+  const _AddTaskDialog({this.task});
+
+  final Task? task;
 
   @override
   ConsumerState<_AddTaskDialog> createState() => _AddTaskDialogState();
@@ -34,6 +37,21 @@ class _AddTaskDialogState extends ConsumerState<_AddTaskDialog> {
   String _difficulty = Difficulty.medium;
   DateTime? _dueDate;
   bool _saving = false;
+
+  bool get _editing => widget.task != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final task = widget.task;
+    if (task != null) {
+      _title.text = task.title;
+      _courseId = task.courseId;
+      _type = task.type;
+      _difficulty = task.difficulty;
+      _dueDate = task.dueDate;
+    }
+  }
 
   @override
   void dispose() {
@@ -68,13 +86,25 @@ class _AddTaskDialogState extends ConsumerState<_AddTaskDialog> {
 
     setState(() => _saving = true);
     try {
-      await ref.read(taskListProvider.notifier).add(
-            title: _title.text.trim(),
-            courseId: _courseId,
-            type: _type,
-            difficulty: _difficulty,
-            dueDate: _dueDate,
-          );
+      final tasks = ref.read(taskListProvider.notifier);
+      if (_editing) {
+        await tasks.edit(
+          widget.task!,
+          title: _title.text.trim(),
+          courseId: _courseId,
+          type: _type,
+          difficulty: _difficulty,
+          dueDate: _dueDate,
+        );
+      } else {
+        await tasks.add(
+          title: _title.text.trim(),
+          courseId: _courseId,
+          type: _type,
+          difficulty: _difficulty,
+          dueDate: _dueDate,
+        );
+      }
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
       if (mounted) {
@@ -108,7 +138,7 @@ class _AddTaskDialogState extends ConsumerState<_AddTaskDialog> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('Add Task', style: AppText.display(19)),
+                    Text(_editing ? 'Edit Task' : 'Add Task', style: AppText.display(19)),
                     const SizedBox(height: 16),
                     _FieldLabel('Course'),
                     if (courses.isEmpty)
@@ -198,7 +228,7 @@ class _AddTaskDialogState extends ConsumerState<_AddTaskDialog> {
                         Expanded(
                           flex: 2,
                           child: BrutalButton(
-                            label: 'Save task',
+                            label: _editing ? 'Save changes' : 'Save task',
                             fontSize: 12,
                             loading: _saving,
                             onPressed: _save,

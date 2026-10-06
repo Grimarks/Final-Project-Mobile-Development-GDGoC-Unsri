@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class PlanRequest(BaseModel):
@@ -57,6 +57,13 @@ class QuizQuestion(BaseModel):
     options: list[str] = Field(min_length=2, max_length=5)
     correct_index: int = Field(ge=0, le=4)
     explanation: str | None = None
+
+    @model_validator(mode="after")
+    def _correct_index_in_options(self) -> "QuizQuestion":
+        # LLM kadang ngasih index 4 padahal opsinya cuma 4 -> gak ada jawaban yg bener
+        if self.correct_index >= len(self.options):
+            raise ValueError("correct_index di luar jumlah opsi")
+        return self
 
 
 class QuizResponse(BaseModel):

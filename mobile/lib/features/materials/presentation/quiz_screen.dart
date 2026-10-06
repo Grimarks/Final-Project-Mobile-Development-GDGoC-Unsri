@@ -65,6 +65,13 @@ class _QuizScreenState extends State<QuizScreen> {
 
   Widget _questionView() {
     final total = widget.quiz.questions.length;
+    if (total == 0) {
+      // jaga2: jangan sampe questions[0] di list kosong bikin crash
+      return Center(
+        child: Text('Belum ada soal untuk materi ini.',
+            textAlign: TextAlign.center, style: AppText.body(13, weight: FontWeight.w600)),
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

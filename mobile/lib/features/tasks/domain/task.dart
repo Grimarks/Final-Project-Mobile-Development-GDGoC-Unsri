@@ -32,6 +32,30 @@ class TaskStatus {
       };
 }
 
+// task yg belom kelar, urut prioritas (label dari backend) -> deadline terdekat ->
+// yg dibikin duluan. dipake Today's Focus & tab Study, jangan urut id doang
+List<Task> rankOpenTasks(Iterable<Task> tasks) {
+  int rank(String priority) => switch (priority) {
+        'high' => 0,
+        'medium' => 1,
+        _ => 2,
+      };
+  final open = tasks.where((t) => !t.isDone).toList();
+  open.sort((a, b) {
+    final byPriority = rank(a.priority).compareTo(rank(b.priority));
+    if (byPriority != 0) return byPriority;
+    final aDue = a.dueDate, bDue = b.dueDate;
+    if (aDue != null && bDue != null) {
+      final byDue = aDue.compareTo(bDue);
+      if (byDue != 0) return byDue;
+    } else if (aDue != null || bDue != null) {
+      return aDue != null ? -1 : 1; // yg ada deadline duluan
+    }
+    return a.id.compareTo(b.id);
+  });
+  return open;
+}
+
 class Task {
   const Task({
     required this.id,

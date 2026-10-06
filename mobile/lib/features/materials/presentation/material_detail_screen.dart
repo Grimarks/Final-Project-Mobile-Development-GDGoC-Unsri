@@ -50,6 +50,14 @@ class _MaterialDetailScreenState extends ConsumerState<MaterialDetailScreen> {
     try {
       final quiz =
           await ref.read(materialRepositoryProvider).generateQuiz(widget.material.id);
+      if (quiz.questions.isEmpty) {
+        // PDF scan / teksnya kependekan, gak ada bahan buat bikin soal
+        if (mounted) {
+          setState(() => _error =
+              'Tidak bisa membuat kuis: teks materi tidak terbaca (kemungkinan PDF hasil scan).');
+        }
+        return;
+      }
       if (mounted) {
         await Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => QuizScreen(quiz: quiz)),
