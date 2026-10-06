@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     groq_model: str = "openai/gpt-oss-120b"
     # model yg bisa baca gambar, buat Snap & Go (foto pengumuman tugas)
     groq_vision_model: str = "qwen/qwen3.8-27b"
+    # speech-to-text buat input suara (v3 biasa lebih akurat buat bahasa Indonesia
+    # drpd turbo — "bab" gak jadi "BAP")
+    groq_whisper_model: str = "whisper-large-v3"
     groq_base_url: str = "https://api.groq.com/openai/v1"
 
     cors_origins: str = "*"

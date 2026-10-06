@@ -41,6 +41,8 @@ Dibangun sebagai final project mata kuliah Mobile Development.
 - Foto pengumuman / papan tulis, pilih screenshot grup kelas, atau paste teks pesan →
   AI (model vision Groq) mengekstrak tugas lengkap dengan mata kuliah & deadline →
   review & centang → langsung masuk Tasks plus pengingat deadline
+- **Input suara**: rekam voice note ("besok kuis Basis Data bab 3, laporan dikumpul
+  Jumat jam 5 sore") → Whisper (Groq) → transkrip → task, transkripnya ikut ditampilkan
 - Nama mata kuliah dicocokkan ke course yang sudah ada; tanggal relatif ("Rabu depan",
   "besok jam 23.59") diubah ke tanggal pasti dalam WIB
 
@@ -262,6 +264,7 @@ server — client tidak menghitung ulang.
 | POST | `/ai/chat/extract-tasks` | — | `{tasks[]}` — AI usulkan course/task baru dari histori chat, belum disimpan |
 | POST | `/ai/chat/confirm-tasks` | `{tasks[]}` | daftar `Task` — simpan task yang sudah direview user |
 | POST | `/ai/snap/extract` | multipart: `image` (JPG/PNG/WebP, maks 3 MB) dan/atau `text` | `{tasks[]}` — Snap & Go, usulan task dari foto/teks pengumuman; `503` kalau AI tidak tersedia |
+| POST | `/ai/snap/voice` | multipart: `audio` (m4a/webm/ogg/wav/mp3/flac, maks 5 MB) | `{transcript, tasks[]}` — input suara via Whisper; `503` kalau AI tidak tersedia |
 | POST | `/ai/materials/{id}/summarize` | — | `{generated_by, summary, key_points[]}` |
 | POST | `/ai/materials/{id}/quiz` | — | `{generated_by, questions[]}` |
 

@@ -27,12 +27,13 @@ from app.schemas.ai import (
     PlanResponse,
     RandomPlanRequest,
     QuizResponse,
+    SnapVoiceResponse,
     SummaryResponse,
     TaskCandidate,
 )
 from app.schemas.task import TaskOut
 from app.services import chat_service, materials_service, snap_service
-from app.services.groq_service import GroqUnavailable
+from app.services.groq_service import GroqUnavailable, transcribe
 from app.services.planning_service import (
     AdjustFailed,
     adjust_plan,
@@ -293,6 +294,44 @@ async def extract_chat_tasks(
     )
     candidates = await chat_service.extract_tasks(history)
     return ExtractTasksResponse(tasks=await _drop_existing(candidates, user, db))
+
+
+SNAP_MAX_AUDIO_BYTES = 5 * 1024 * 1024  # ~5 menit m4a, rekaman di HP dibatesin 60 detik
+
+
+@router.post("/snap/voice", response_model=SnapVoiceResponse)
+async def snap_voice(
+    audio: UploadFile = File(...),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Input suara: rekaman ("besok kuis basis data bab 3") -> Whisper -> teks ->
+    ekstraksi yg sama kayak Snap & Go teks. Balikin transkrip + usulan task."""
+    data = await audio.read()
+    if not data:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Rekaman kosong")
+    if len(data) > SNAP_MAX_AUDIO_BYTES:
+        raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "Rekaman maksimal 5 MB")
+    ext = snap_service.detect_audio_ext(data)
+    if ext is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Format rekaman tidak didukung")
+
+    courses = (await db.execute(select(Course.name).where(Course.user_id == user.id))).scalars()
+    try:
+        transcript = await transcribe(data, f"voice.{ext}")
+        if not transcript:
+            return SnapVoiceResponse(transcript="", tasks=[])
+        candidates = await snap_service.extract_from_snap(
+            image=None, image_mime=None, text=transcript, course_names=list(courses)
+        )
+    except GroqUnavailable as exc:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "AI sedang tidak tersedia, coba lagi sebentar lagi",
+        ) from exc
+    return SnapVoiceResponse(
+        transcript=transcript, tasks=await _drop_existing(candidates, user, db)
+    )
 
 
 async def _drop_existing(

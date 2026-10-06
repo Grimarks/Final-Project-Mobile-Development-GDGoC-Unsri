@@ -54,6 +54,8 @@
 	<string>CampusFlow uses Face ID to unlock the app quickly instead of typing your password.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>CampusFlow uses the camera to snap task announcements so AI can add them to your tasks.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>CampusFlow records your voice note so AI can turn what you say into tasks.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>CampusFlow reads the screenshot or photo you pick so AI can add its tasks for you.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>

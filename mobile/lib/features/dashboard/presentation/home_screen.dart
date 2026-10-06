@@ -203,7 +203,7 @@ class _SnapCard extends StatelessWidget {
               children: [
                 Text('Snap & Go', style: AppText.display(14, weight: FontWeight.w700)),
                 const SizedBox(height: 2),
-                Text('Photo an announcement, AI adds the tasks',
+                Text('Snap or say it — AI adds the tasks',
                     style: AppText.body(11.5,
                         weight: FontWeight.w600, color: AppColors.inkMuted(0.55))),
               ],

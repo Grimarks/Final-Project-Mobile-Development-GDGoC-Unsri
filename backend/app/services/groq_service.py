@@ -139,3 +139,44 @@ async def complete_text(
                 await _backoff(exc, attempt, retries)
 
     raise GroqUnavailable(f"Groq gagal setelah {retries + 1} percobaan: {last_error}")
+
+
+# bias kosakata buat Whisper: istilah kuliah yg sering salah dengar
+_WHISPER_PROMPT = (
+    "Pengumuman tugas kuliah: bab, kuis, UTS, UAS, praktikum, laporan, makalah, "
+    "presentasi, deadline, dikumpul, mata kuliah."
+)
+
+
+async def transcribe(audio: bytes, filename: str, *, retries: int = 2) -> str:
+    """Rekaman suara -> teks lewat Whisper di Groq. Ekstensi `filename` dipake Groq
+    buat nebak format audionya, jadi mesti sesuai isi file."""
+    if not settings.groq_enabled:
+        raise GroqUnavailable("GROQ_API_KEY belum diisi")
+
+    headers = {"Authorization": f"Bearer {settings.groq_api_key}"}
+    data = {
+        "model": settings.groq_whisper_model,
+        "language": "id",
+        "response_format": "json",
+        "temperature": "0",
+        "prompt": _WHISPER_PROMPT,
+    }
+    last_error: Exception | None = None
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        for attempt in range(retries + 1):
+            try:
+                resp = await client.post(
+                    f"{settings.groq_base_url}/audio/transcriptions",
+                    headers=headers,
+                    data=data,
+                    files={"file": (filename, audio)},
+                )
+                resp.raise_for_status()
+                return str(resp.json()["text"]).strip()
+            except (httpx.HTTPError, KeyError, ValueError) as exc:
+                last_error = exc
+                logger.warning("Whisper gagal (percobaan %s): %s", attempt + 1, exc)
+                await _backoff(exc, attempt, retries)
+
+    raise GroqUnavailable(f"Whisper gagal setelah {retries + 1} percobaan: {last_error}")

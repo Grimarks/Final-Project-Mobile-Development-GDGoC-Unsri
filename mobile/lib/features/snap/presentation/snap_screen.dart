@@ -15,6 +15,7 @@ import '../../../core/widgets/brutal_text_field.dart';
 import '../../planner/domain/task_candidate.dart';
 import '../data/snap_repository.dart';
 import 'snap_controller.dart';
+import 'voice_recorder_sheet.dart';
 
 // Snap & Go: foto pengumuman / screenshot grup kelas / paste teks -> AI baca ->
 // review -> masuk Tasks. layar full tanpa bottom nav, masuknya dari Tasks & Home
@@ -46,8 +47,8 @@ class SnapScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'Snap a class announcement, whiteboard, or group-chat screenshot. '
-              'AI turns it into tasks with deadlines.',
+              'Snap a class announcement, say it out loud, or drop a group-chat '
+              'screenshot. AI turns it into tasks with deadlines.',
               style: AppText.body(12.5, color: AppColors.inkMuted(0.65)),
             ),
             const SizedBox(height: 20),
@@ -106,6 +107,18 @@ class _PickPanel extends ConsumerWidget {
           subtitle: 'Whiteboard, slide, or printed announcement',
           fill: AppColors.accent,
           onTap: () => _pick(context, ref, ImageSource.camera),
+        ),
+        const SizedBox(height: 12),
+        _SourceCard(
+          icon: Icons.mic_none_outlined,
+          title: 'Say it',
+          subtitle: 'Voice note: “besok kuis Basis Data bab 3…”',
+          onTap: () async {
+            final audio = await showVoiceRecorder(context);
+            if (audio != null && audio.isNotEmpty) {
+              await ref.read(snapControllerProvider.notifier).extractVoice(audio);
+            }
+          },
         ),
         const SizedBox(height: 12),
         _SourceCard(
@@ -285,7 +298,7 @@ class _ReadingPanel extends StatelessWidget {
         const Center(child: CircularProgressIndicator(color: AppColors.ink)),
         const SizedBox(height: 14),
         Center(
-          child: Text('AI is reading it…',
+          child: Text(state.voice ? 'Listening to your voice note…' : 'AI is reading it…',
               style: AppText.display(14, weight: FontWeight.w700)),
         ),
       ],
@@ -302,6 +315,7 @@ class _SourcePreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final image = state.image;
+    if (state.voice) return _VoicePreview(transcript: state.transcript);
     return Container(
       constraints: BoxConstraints(maxHeight: height),
       decoration: Brutal.box(shadowOffset: 3),
@@ -315,6 +329,40 @@ class _SourcePreview extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: AppText.body(12.5, color: AppColors.inkMuted(0.75))),
             ),
+    );
+  }
+}
+
+// voice note: tampilin transkrip Whisper biar user tau AI dengernya apa
+class _VoicePreview extends StatelessWidget {
+  const _VoicePreview({required this.transcript});
+
+  final String? transcript;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = transcript;
+    return BrutalCard(
+      shadowOffset: 3,
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.mic, size: 22, color: AppColors.ink),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text == null
+                  ? 'Transcribing your voice note…'
+                  : text.isEmpty
+                      ? "Couldn't hear anything — try again a bit closer to the mic."
+                      : '“$text”',
+              style: AppText.body(12.5,
+                  weight: FontWeight.w600, color: AppColors.inkMuted(0.8)),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

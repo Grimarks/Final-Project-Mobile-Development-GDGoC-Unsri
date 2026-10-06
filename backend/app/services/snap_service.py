@@ -41,6 +41,23 @@ def detect_image_mime(data: bytes) -> str | None:
     return None
 
 
+def detect_audio_ext(data: bytes) -> str | None:
+    """Format rekaman dari isi file -> ekstensi yg dimengerti Whisper."""
+    if data[4:8] == b"ftyp":
+        return "m4a"  # AAC/MP4, default rekaman iOS & Android
+    if data.startswith(b"\x1a\x45\xdf\xa3"):
+        return "webm"
+    if data.startswith(b"OggS"):
+        return "ogg"
+    if data[:4] == b"RIFF" and data[8:12] == b"WAVE":
+        return "wav"
+    if data.startswith(b"fLaC"):
+        return "flac"
+    if data.startswith(b"ID3") or (len(data) > 1 and data[0] == 0xFF and data[1] & 0xE0 == 0xE0):
+        return "mp3"
+    return None
+
+
 def build_snap_content(
     *,
     image: bytes | None,

@@ -16,6 +16,8 @@ class SnapState {
     this.status = SnapStatus.pick,
     this.image,
     this.text,
+    this.voice = false,
+    this.transcript,
     this.candidates = const [],
     this.deselected = const {},
     this.error,
@@ -24,6 +26,8 @@ class SnapState {
   final SnapStatus status;
   final Uint8List? image; // foto yg lagi dibaca, buat preview
   final String? text; // atau teks yg di-paste
+  final bool voice; // atau rekaman suara
+  final String? transcript; // hasil Whisper, ditampilin di review
   final List<TaskCandidate> candidates;
   final Set<int> deselected;
   final String? error;
@@ -40,6 +44,8 @@ class SnapState {
         status: status ?? this.status,
         image: image,
         text: text,
+        voice: voice,
+        transcript: transcript,
         candidates: candidates ?? this.candidates,
         deselected: deselected ?? this.deselected,
         error: error,
@@ -59,6 +65,22 @@ class SnapController extends AutoDisposeNotifier<SnapState> {
       state = state.copyWith(status: SnapStatus.review, candidates: candidates);
     } catch (e) {
       state = SnapState(image: image, text: text, error: e.toString());
+    }
+  }
+
+  // input suara: rekaman dikirim ke Whisper, transkripnya ikut disimpen
+  Future<void> extractVoice(Uint8List audio) async {
+    state = const SnapState(status: SnapStatus.reading, voice: true);
+    try {
+      final result = await ref.read(snapRepositoryProvider).extractVoice(audio);
+      state = SnapState(
+        status: SnapStatus.review,
+        voice: true,
+        transcript: result.transcript,
+        candidates: result.tasks,
+      );
+    } catch (e) {
+      state = SnapState(voice: true, error: e.toString());
     }
   }
 

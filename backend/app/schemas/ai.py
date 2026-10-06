@@ -130,5 +130,11 @@ class ExtractTasksResponse(BaseModel):
     tasks: list[TaskCandidate]
 
 
+class SnapVoiceResponse(ExtractTasksResponse):
+    """Input suara: transkrip Whisper-nya ikut dibalikin biar user liat AI dengernya apa."""
+
+    transcript: str
+
+
 class ConfirmTasksRequest(BaseModel):
     tasks: list[TaskCandidate] = Field(min_length=1, max_length=20)

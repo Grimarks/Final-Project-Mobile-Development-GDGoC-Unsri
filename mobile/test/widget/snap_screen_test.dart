@@ -5,6 +5,7 @@ import 'package:campusflow/core/notifications/notification_service.dart';
 import 'package:campusflow/features/planner/data/planner_repository.dart';
 import 'package:campusflow/features/planner/domain/task_candidate.dart';
 import 'package:campusflow/features/snap/data/snap_repository.dart';
+import 'package:campusflow/features/snap/presentation/snap_controller.dart';
 import 'package:campusflow/features/snap/presentation/snap_screen.dart';
 import 'package:campusflow/features/tasks/domain/task.dart';
 import 'package:dio/dio.dart';
@@ -12,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:record/record.dart';
 
 /// Snap & Go lewat jalur "Paste text": AI (di-fake) ngusulin task, user bisa
 /// uncheck, terus yg dicentang aja yg dikirim ke confirmTasks.
@@ -67,6 +69,41 @@ void main() {
     expect(planner.confirmed.map((c) => c.title), ['Kuis normalisasi']);
   });
 
+  testWidgets('voice note -> transkrip Whisper ikut tampil di review', (tester) async {
+    await tester.pumpWidget(wrap(_FakeSnapRepository(), _FakePlannerRepository()));
+    await tester.pumpAndSettle();
+
+    final container = ProviderScope.containerOf(tester.element(find.byType(SnapScreen)));
+    await container
+        .read(snapControllerProvider.notifier)
+        .extractVoice(Uint8List.fromList([0, 0, 0, 32]));
+    await tester.pumpAndSettle();
+
+    expect(find.text('“besok kuis basis data bab normalisasi”'), findsOneWidget);
+    expect(find.text('Found 1 task'), findsOneWidget);
+  });
+
+  testWidgets('izin mikrofon ditolak -> pesan tampil, Cancel menutup tanpa ekstraksi',
+      (tester) async {
+    final snap = _FakeSnapRepository();
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        snapRepositoryProvider.overrideWithValue(snap),
+        audioRecorderFactoryProvider.overrideWithValue(_DeniedRecorder.new),
+      ],
+      child: const MaterialApp(home: SnapScreen()),
+    ));
+    await tester.tap(find.text('Say it'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Microphone access is off'), findsOneWidget);
+    await tester.tap(find.text('CANCEL'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Take a photo'), findsOneWidget);
+    expect(snap.voiceCalls, 0);
+  });
+
   testWidgets('AI tidak tersedia -> pesan error tampil, balik ke pilihan sumber',
       (tester) async {
     final snap = _FakeSnapRepository(error: ApiException('AI sedang tidak tersedia'));
@@ -93,6 +130,25 @@ class _FakeSnapRepository extends SnapRepository {
       TaskCandidate(course: 'Basis Data', title: 'Laporan modul 3'),
     ];
   }
+
+  int voiceCalls = 0;
+
+  @override
+  Future<({String transcript, List<TaskCandidate> tasks})> extractVoice(Uint8List audio) async {
+    voiceCalls++;
+    return (
+      transcript: 'besok kuis basis data bab normalisasi',
+      tasks: const [TaskCandidate(course: 'Basis Data', title: 'Kuis normalisasi', type: 'quiz')],
+    );
+  }
+}
+
+class _DeniedRecorder extends Fake implements AudioRecorder {
+  @override
+  Future<bool> hasPermission({bool request = true}) async => false;
+
+  @override
+  Future<void> dispose() async {}
 }
 
 class _FakePlannerRepository extends PlannerRepository {
