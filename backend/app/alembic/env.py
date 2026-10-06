@@ -30,7 +30,7 @@ def do_run_migrations(connection) -> None:
     context.configure(
         connection=connection,
         target_metadata=target_metadata,
-        render_as_batch=settings.database_url.startswith("sqlite"),
+        render_as_batch=settings.is_sqlite,
     )
     with context.begin_transaction():
         context.run_migrations()

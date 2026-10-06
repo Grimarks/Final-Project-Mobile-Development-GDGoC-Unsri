@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/network/api_client.dart';
 import 'core/network/local_cache.dart';
 import 'core/notifications/notification_service.dart';
 import 'core/router/app_router.dart';
@@ -12,6 +13,9 @@ Future<void> main() async {
   final container = ProviderContainer();
   // minta izin notif sekali di awal, gak di-await biar gak nahan frame pertama
   container.read(notificationServiceProvider).init();
+  // server gratisan (Render) tidur kalo lama nganggur & butuh ±1 menit buat bangun.
+  // colek dari sekarang, biar pas user kelar ngetik login server-nya udah melek
+  container.read(apiClientProvider).get<dynamic>('/health').ignore();
   runApp(UncontrolledProviderScope(container: container, child: const CampusFlowApp()));
 }
 

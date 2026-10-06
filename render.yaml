@@ -1,0 +1,38 @@
+# Render Blueprint: backend FastAPI + PostgreSQL, dua-duanya plan gratis di region
+# Singapore (paling deket ke Indonesia). Cara pakai: Render Dashboard -> New ->
+# Blueprint -> pilih repo ini. Detail lengkap di README bagian "Deploy ke Render".
+services:
+  - type: web
+    name: campusflow-api
+    runtime: python
+    plan: free
+    region: singapore
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    # migrasi dulu tiap deploy, baru nyalain server. 1 worker aja: rate limiter
+    # nyimpen hitungan di memori proses
+    startCommand: python -m alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: DATABASE_URL
+        fromDatabase:
+          name: campusflow-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true # string acak dari Render, server nolak start kalo kosong
+      - key: GROQ_API_KEY
+        sync: false # diisi manual di dashboard pas bikin Blueprint, jangan di-commit
+      - key: APP_TIMEZONE
+        value: Asia/Jakarta
+      - key: RATE_LIMIT_ENABLED
+        value: "true"
+
+databases:
+  - name: campusflow-db
+    plan: free # Postgres gratis Render kedaluwarsa 30 hari setelah dibuat
+    region: singapore
+    databaseName: campusflow
+    user: campusflow

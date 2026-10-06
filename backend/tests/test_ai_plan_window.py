@@ -184,7 +184,12 @@ async def test_accept_creates_missing_tasks_and_shows_as_today(auth_client, db_s
 
 @pytest.mark.asyncio
 async def test_accept_other_users_plan_is_404(auth_client, db_session):
-    plan_id = await _seed_plan(db_session, 9999, [
+    # user lain beneran (Postgres nolak FK ke user yg gak ada, SQLite diem aja)
+    other = await auth_client.post(
+        "/auth/register",
+        json={"name": "Lain", "email": "lain-plan@unsri.ac.id", "password": "Password123!"},
+    )
+    plan_id = await _seed_plan(db_session, other.json()["user"]["id"], [
         {"task_id": None, "title": "X", "start_time": "10:00", "end_time": "11:00",
          "duration_minutes": 60},
     ])

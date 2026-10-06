@@ -18,15 +18,26 @@ from app.core.db import Base, get_db
 from app.main import app
 
 
+# default SQLite in-memory. buat ngetes ke Postgres beneran (kayak di Render):
+# TEST_DATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/db pytest
+TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL")
+
+
 @pytest_asyncio.fixture
 async def db_session():
-    engine = create_async_engine(
-        "sqlite+aiosqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    if TEST_DATABASE_URL:
+        engine = create_async_engine(TEST_DATABASE_URL)
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.drop_all)  # sisa test sebelumnya
+            await conn.run_sync(Base.metadata.create_all)
+    else:
+        engine = create_async_engine(
+            "sqlite+aiosqlite:///:memory:",
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,
+        )
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
     maker = async_sessionmaker(engine, expire_on_commit=False)
     async with maker() as session:
         yield session

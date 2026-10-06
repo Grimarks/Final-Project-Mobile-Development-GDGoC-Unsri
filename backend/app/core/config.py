@@ -2,7 +2,10 @@
 from functools import lru_cache
 from zoneinfo import ZoneInfo
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+DEFAULT_JWT_SECRET = "dev-secret-change-me"
 
 
 class Settings(BaseSettings):
@@ -11,7 +14,7 @@ class Settings(BaseSettings):
     app_name: str = "CampusFlow API"
     database_url: str = "sqlite+aiosqlite:///./campusflow.db"
 
-    jwt_secret: str = "dev-secret-change-me"
+    jwt_secret: str = DEFAULT_JWT_SECRET
     jwt_algorithm: str = "HS256"
     jwt_access_expire_minutes: int = 30
     jwt_refresh_expire_days: int = 7
@@ -41,6 +44,20 @@ class Settings(BaseSettings):
     @property
     def groq_enabled(self) -> bool:
         return bool(self.groq_api_key)
+
+    @field_validator("database_url")
+    @classmethod
+    def _async_driver(cls, value: str) -> str:
+        # Render/Railway ngasih "postgres://" / "postgresql://", SQLAlchemy async
+        # butuh nama driver-nya eksplisit
+        for prefix in ("postgres://", "postgresql://"):
+            if value.startswith(prefix):
+                return "postgresql+asyncpg://" + value[len(prefix):]
+        return value
+
+    @property
+    def is_sqlite(self) -> bool:
+        return self.database_url.startswith("sqlite")
 
     def rate_limit_for(self, bucket: str) -> str:
         return getattr(self, f"rate_limit_{bucket}")

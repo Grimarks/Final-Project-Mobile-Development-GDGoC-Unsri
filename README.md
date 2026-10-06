@@ -160,6 +160,50 @@ tab **AI** → pilih salah satu dari 3 kartu (Generate random / Adjust plan / Ta
 me) → **Accept plan** kembali ke **Home** → tap kartu task di "Today's Focus" untuk
 mulai sesi fokus di tab **Study**.
 
+### 2.4 Deploy backend ke Render (cloud, gratis)
+
+Supaya aplikasi bisa dipakai dari jaringan mana pun (Wi-Fi acara sering memblokir
+koneksi antar-perangkat, jadi HP pengunjung tidak bisa mengakses laptop). Konfigurasinya
+ada di `render.yaml` (Blueprint): web service FastAPI + PostgreSQL, dua-duanya plan
+gratis di region Singapore.
+
+1. Push repo ke GitHub (Render menarik kode dari sana).
+2. Di [dashboard.render.com](https://dashboard.render.com): **New → Blueprint** → hubungkan
+   akun GitHub → pilih repo ini. Render membaca `render.yaml` dan menampilkan
+   `campusflow-api` + `campusflow-db`.
+3. Isi **`GROQ_API_KEY`** saat diminta (tidak pernah di-commit). `JWT_SECRET` dibuat acak
+   otomatis oleh Render, `DATABASE_URL` tersambung otomatis ke database.
+4. **Apply**. Build + migrasi Alembic jalan otomatis (±3–5 menit). Cek
+   `https://<nama-service>.onrender.com/health` → `{"status":"ok","ai_provider":"groq"}`.
+   Nama service bisa mendapat akhiran acak kalau `campusflow-api` sudah dipakai orang;
+   lihat URL persisnya di dashboard.
+5. Build aplikasi mengarah ke server cloud:
+
+   ```bash
+   cd mobile
+   flutter build apk --release --dart-define=API_BASE_URL=https://<nama-service>.onrender.com
+   flutter run --release --dart-define=API_BASE_URL=https://<nama-service>.onrender.com   # iPhone
+   ```
+
+   APK/app yang sudah terpasang tidak perlu build ulang: di layar login buka
+   **Server settings** lalu isi URL di atas.
+
+Setiap push ke `main` otomatis di-deploy ulang (`autoDeploy`), dan `alembic upgrade head`
+selalu jalan sebelum server start.
+
+**Batasan plan gratis — penting untuk hari-H:**
+
+| Batasan | Dampak | Antisipasi |
+|---|---|---|
+| Server tidur setelah 15 menit tanpa request, bangun ±1 menit | Request pertama lambat | Aplikasi otomatis "membangunkan" server (ping `/health`) begitu dibuka. Untuk hari-H, pasang monitor gratis di [UptimeRobot](https://uptimerobot.com) (HTTP, tiap 5 menit) ke `/health` sejak pagi |
+| Postgres gratis kedaluwarsa 30 hari setelah dibuat | Data hilang setelahnya | Buat database **mendekati** tanggal acara, atau upgrade plan |
+| Disk tidak permanen | File PDF fisik hilang saat redeploy | Teks hasil ekstraksi tersimpan di database, jadi ringkasan & kuis tetap jalan |
+| Rate limit dihitung per akun | Akun demo bersama cepat mentok | Naikkan `RATE_LIMIT_SNAP` / `RATE_LIMIT_AI` di tab **Environment** service, atau `RATE_LIMIT_ENABLED=false` |
+
+Server menolak start kalau `JWT_SECRET` masih nilai bawaan saat memakai PostgreSQL, supaya
+tidak ada token yang bisa dipalsukan. Test backend juga bisa dijalankan terhadap
+PostgreSQL sungguhan: `TEST_DATABASE_URL=postgresql+asyncpg://user:pass@host/db pytest`.
+
 ---
 
 ## 3. Versi dan dependensi

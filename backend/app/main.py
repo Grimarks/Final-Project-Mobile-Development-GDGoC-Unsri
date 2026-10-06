@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.core.config import settings
+from app.core.config import DEFAULT_JWT_SECRET, settings
 from app.core.db import Base, engine
 from app.models import *  # noqa: F401,F403  (biar model ke-registrasi ke metadata)
 from app.routers import ai, auth, courses, materials, study_sessions, tasks
@@ -15,7 +15,10 @@ logging.basicConfig(level=logging.INFO)
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     """Dev/SQLite doang: bikin tabel otomatis. Kalo produksi pake `alembic upgrade head`."""
-    if settings.database_url.startswith("sqlite"):
+    if not settings.is_sqlite and settings.jwt_secret == DEFAULT_JWT_SECRET:
+        # secret default = siapa aja bisa bikin token login akun orang
+        raise RuntimeError("JWT_SECRET wajib diisi string acak sebelum jalan di server")
+    if settings.is_sqlite:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
     yield
