@@ -383,11 +383,13 @@ class ChatController extends Notifier<ChatState> {
     }
   }
 
-  Future<void> send(String text) async {
+  // false = gagal kekirim (mis. kena rate limit), teksnya bisa dibalikin ke input
+  Future<bool> send(String text) async {
     final trimmed = text.trim();
-    if (trimmed.isEmpty || state.status == ChatStatus.sending) return;
+    if (trimmed.isEmpty || state.status == ChatStatus.sending) return false;
+    final before = state.messages;
     state = state.copyWith(
-      messages: [...state.messages, ChatMessage(role: 'user', content: trimmed)],
+      messages: [...before, ChatMessage(role: 'user', content: trimmed)],
       status: ChatStatus.sending,
     );
     try {
@@ -396,8 +398,11 @@ class ChatController extends Notifier<ChatState> {
         messages: [...state.messages, ChatMessage(role: 'assistant', content: reply.reply)],
         status: ChatStatus.idle,
       );
+      return true;
     } catch (e) {
-      state = state.copyWith(status: ChatStatus.idle, error: e.toString());
+      // pesannya gak kesimpen di server, jangan dipajang seolah udah kekirim
+      state = state.copyWith(messages: before, status: ChatStatus.idle, error: e.toString());
+      return false;
     }
   }
 

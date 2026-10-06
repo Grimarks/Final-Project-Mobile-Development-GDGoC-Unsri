@@ -58,6 +58,16 @@ async def auth_client(client):
     return client
 
 
+@pytest.fixture(autouse=True)
+def _reset_rate_limiter():
+    """Hitungan rate limit di memori, jangan kebawa dari test sebelumnya."""
+    from app.core.rate_limit import limiter
+
+    limiter.reset()
+    yield
+    limiter.reset()
+
+
 @pytest.fixture
 def anyio_backend():
     return "asyncio"

@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.db import get_db
+from app.core.rate_limit import rate_limit
 from app.core.security import get_current_user
 from app.models.ai_generated import AIGenerated
 from app.models.chat_message import ChatMessage
@@ -78,7 +79,11 @@ def _row_to_plan(row: AIGenerated) -> PlanResponse:
     return plan
 
 
-@router.post("/plan", response_model=PlanResponse)
+@router.post(
+    "/plan",
+    response_model=PlanResponse,
+    dependencies=[Depends(rate_limit("ai"))],
+)
 async def plan_my_day(
     body: PlanRequest,
     user: User = Depends(get_current_user),
@@ -131,7 +136,11 @@ async def _get_active_plan_row(user: User, db: AsyncSession) -> AIGenerated:
     return row
 
 
-@router.post("/plan/adjust", response_model=AdjustPlanResponse)
+@router.post(
+    "/plan/adjust",
+    response_model=AdjustPlanResponse,
+    dependencies=[Depends(rate_limit("ai"))],
+)
 async def adjust_active_plan(
     body: AdjustRequest,
     user: User = Depends(get_current_user),
@@ -246,7 +255,11 @@ async def todays_plan(
     return max(accepted, key=lambda p: p.accepted_at or "", default=None)
 
 
-@router.post("/plan/from-chat", response_model=PlanResponse)
+@router.post(
+    "/plan/from-chat",
+    response_model=PlanResponse,
+    dependencies=[Depends(rate_limit("ai"))],
+)
 async def plan_from_chat(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -277,7 +290,11 @@ async def plan_from_chat(
     return await _save_plan(plan, user, db)
 
 
-@router.post("/chat/extract-tasks", response_model=ExtractTasksResponse)
+@router.post(
+    "/chat/extract-tasks",
+    response_model=ExtractTasksResponse,
+    dependencies=[Depends(rate_limit("ai"))],
+)
 async def extract_chat_tasks(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -299,7 +316,11 @@ async def extract_chat_tasks(
 SNAP_MAX_AUDIO_BYTES = 5 * 1024 * 1024  # ~5 menit m4a, rekaman di HP dibatesin 60 detik
 
 
-@router.post("/snap/voice", response_model=SnapVoiceResponse)
+@router.post(
+    "/snap/voice",
+    response_model=SnapVoiceResponse,
+    dependencies=[Depends(rate_limit("snap"))],
+)
 async def snap_voice(
     audio: UploadFile = File(...),
     user: User = Depends(get_current_user),
@@ -351,7 +372,11 @@ SNAP_MAX_IMAGE_BYTES = 3 * 1024 * 1024  # base64-nya ~4 MB = batas request gamba
 SNAP_MAX_TEXT_CHARS = 4000
 
 
-@router.post("/snap/extract", response_model=ExtractTasksResponse)
+@router.post(
+    "/snap/extract",
+    response_model=ExtractTasksResponse,
+    dependencies=[Depends(rate_limit("snap"))],
+)
 async def snap_extract(
     image: UploadFile | None = File(default=None),
     text: str | None = Form(default=None),
@@ -437,7 +462,11 @@ async def confirm_chat_tasks(
     return [task_to_out(t) for t in rows]
 
 
-@router.post("/chat/message", response_model=ChatReplyResponse)
+@router.post(
+    "/chat/message",
+    response_model=ChatReplyResponse,
+    dependencies=[Depends(rate_limit("chat"))],
+)
 async def send_chat_message(
     body: ChatMessageIn,
     user: User = Depends(get_current_user),
@@ -496,7 +525,11 @@ async def _get_material(material_id: int, user: User, db: AsyncSession) -> Mater
     return material
 
 
-@router.post("/materials/{material_id}/summarize", response_model=SummaryResponse)
+@router.post(
+    "/materials/{material_id}/summarize",
+    response_model=SummaryResponse,
+    dependencies=[Depends(rate_limit("ai"))],
+)
 async def summarize_material(
     material_id: int,
     user: User = Depends(get_current_user),
@@ -517,7 +550,11 @@ async def summarize_material(
     return result
 
 
-@router.post("/materials/{material_id}/quiz", response_model=QuizResponse)
+@router.post(
+    "/materials/{material_id}/quiz",
+    response_model=QuizResponse,
+    dependencies=[Depends(rate_limit("ai"))],
+)
 async def quiz_material(
     material_id: int,
     user: User = Depends(get_current_user),

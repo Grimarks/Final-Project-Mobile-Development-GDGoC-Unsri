@@ -332,6 +332,15 @@ salah, atau durasi di luar batas wajar, validasi gagal dan sistem otomatis jatuh
 ke penjadwal heuristik. Warna mata kuliah tiap blok juga di-override dari database,
 bukan diambil dari output model.
 
+**Rate limit per user.** Semua endpoint yang memanggil Groq dibatasi per akun
+(`backend/app/core/rate_limit.py`, sliding window di memori): Snap & Go foto/suara
+6/menit & 40/jam, chat 20/menit & 200/jam, sisanya (plan, adjust, ringkasan, kuis,
+ekstraksi) 10/menit & 100/jam. Lewat batas → `429` + header `Retry-After` dan pesan
+"Coba lagi dalam N detik" yang langsung ditampilkan aplikasi. Angkanya bisa diubah di
+`.env` (`RATE_LIMIT_SNAP`, `RATE_LIMIT_CHAT`, `RATE_LIMIT_AI`, atau
+`RATE_LIMIT_ENABLED=false`) — misalnya dinaikkan kalau demo booth memakai satu akun
+bersama. Karena disimpan di memori, batas ini berlaku untuk satu proses uvicorn.
+
 **Fallback penuh.** Kalau `GROQ_API_KEY` kosong, API down, atau timeout (dengan 2x
 retry), `build_plan_heuristic()` mengambil alih: tugas terpenting dulu, blok 30–90
 menit sesuai kesulitan, jeda 15 menit, berhenti saat jatah waktu habis. Aplikasi

@@ -27,12 +27,23 @@ class Settings(BaseSettings):
 
     cors_origins: str = "*"
 
+    # rate limit per user endpoint AI, format "N/minute,M/hour" (kosong = bebas).
+    # snap = foto/suara (paling mahal), chat = pesan chat planner, ai = sisanya
+    # (plan, adjust, summary, quiz, extract). booth pake 1 akun demo? gedein aja
+    rate_limit_enabled: bool = True
+    rate_limit_snap: str = "6/minute,40/hour"
+    rate_limit_chat: str = "20/minute,200/hour"
+    rate_limit_ai: str = "10/minute,100/hour"
+
     # zona waktu mahasiswa — buat ngartiin tanggal polos dari AI ("besok", "2026-10-07")
     app_timezone: str = "Asia/Jakarta"
 
     @property
     def groq_enabled(self) -> bool:
         return bool(self.groq_api_key)
+
+    def rate_limit_for(self, bucket: str) -> str:
+        return getattr(self, f"rate_limit_{bucket}")
 
     @property
     def tz(self) -> ZoneInfo:

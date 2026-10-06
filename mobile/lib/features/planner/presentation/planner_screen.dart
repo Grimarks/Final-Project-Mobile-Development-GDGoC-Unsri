@@ -795,11 +795,15 @@ class _ChatModePanelState extends ConsumerState<_ChatModePanel> {
               const SizedBox(width: 10),
               _SendButton(
                 loading: state.status == ChatStatus.sending,
-                onPressed: () {
+                onPressed: () async {
                   final text = _inputController.text;
                   if (text.trim().isEmpty) return;
                   _inputController.clear();
-                  notifier.send(text);
+                  final sent = await notifier.send(text);
+                  // gagal (mis. rate limit) -> balikin teksnya, tinggal kirim ulang
+                  if (!sent && mounted && _inputController.text.isEmpty) {
+                    _inputController.text = text;
+                  }
                 },
               ),
             ],
