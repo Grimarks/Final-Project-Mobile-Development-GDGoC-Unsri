@@ -50,6 +50,12 @@ ApiException toApiException(DioException e) {
 
 final tokenStorageProvider = Provider<TokenStorage>((ref) => TokenStorage());
 
+const _retriedKey = 'cf_retried';
+
+// jeda sebelum retry koneksi putus. variabel biar test gak perlu nunggu beneran
+@visibleForTesting
+Duration retryDelay = const Duration(milliseconds: 800);
+
 final apiClientProvider = Provider<Dio>((ref) {
   final storage = ref.watch(tokenStorageProvider);
   final dio = Dio(
@@ -76,6 +82,24 @@ final apiClientProvider = Provider<Dio>((ref) {
         handler.next(options);
       },
       onError: (error, handler) async {
+        // koneksi putus sesaat (server baru restart/bangun, koneksi lama diputus
+        // server, sinyal kedip) -> coba ulang SEKALI diem2, user gak usah liat error.
+        // request-nya belom nyampe server, jadi aman diulang
+        final request = error.requestOptions;
+        final dropped = error.type == DioExceptionType.connectionError ||
+            error.type == DioExceptionType.connectionTimeout;
+        if (dropped && request.extra[_retriedKey] != true) {
+          await Future<void>.delayed(retryDelay);
+          request.extra[_retriedKey] = true;
+          // body multipart (foto/suara) cuma bisa dikirim sekali, mesti di-clone
+          if (request.data is FormData) request.data = (request.data as FormData).clone();
+          try {
+            return handler.resolve(await dio.fetch(request));
+          } on DioException catch (e) {
+            return handler.next(e);
+          }
+        }
+
         // /auth/me dll tetep boleh di-refresh, cuma endpoint yg ngeluarin token yg engga
         final path = error.requestOptions.path;
         final isTokenCall =
@@ -89,7 +113,9 @@ final apiClientProvider = Provider<Dio>((ref) {
         if (refresh == null) return handler.next(error);
 
         try {
-          final fresh = Dio(BaseOptions(baseUrl: dio.options.baseUrl));
+          // Dio terpisah biar gak muter lewat interceptor ini, tapi adapter-nya sama
+          final fresh = Dio(BaseOptions(baseUrl: dio.options.baseUrl))
+            ..httpClientAdapter = dio.httpClientAdapter;
           final resp = await fresh.post('/auth/refresh', data: {'refresh_token': refresh});
           final newAccess = resp.data['access_token'] as String;
           await storage.saveTokens(
@@ -99,6 +125,8 @@ final apiClientProvider = Provider<Dio>((ref) {
 
           final retry = error.requestOptions;
           retry.headers['Authorization'] = 'Bearer $newAccess';
+          // upload foto/suara abis token expired: body multipart mesti di-clone
+          if (retry.data is FormData) retry.data = (retry.data as FormData).clone();
           final result = await dio.fetch(retry);
           return handler.resolve(result);
         } on DioException catch (e) {
