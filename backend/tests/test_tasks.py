@@ -85,3 +85,21 @@ async def test_cannot_touch_other_users_task(auth_client, client):
 async def test_task_with_foreign_course_rejected(auth_client):
     resp = await auth_client.post("/tasks", json={"title": "A", "course_id": 999})
     assert resp.status_code == 404
+
+
+
+async def test_due_date_round_trips_with_zone(auth_client, db_session):
+    """Regresi: SQLite dulu ngebuang zona waktu -> dibaca balik jadi jam naive, app
+    di HP nganggep itu jam lokal & deadline geser 7 jam. Sekarang selalu ber-zona."""
+    from datetime import datetime, timezone
+
+    for title, due in (("WIB", "2026-10-07T23:59:00+07:00"), ("UTC", "2026-10-07T16:59:00Z")):
+        resp = await auth_client.post("/tasks", json={"title": title, "due_date": due})
+        assert resp.status_code == 201, resp.text
+
+    db_session.expire_all()  # paksa baca ulang dari DB, bukan objek di memori
+    expected = datetime(2026, 10, 7, 16, 59, tzinfo=timezone.utc)
+    for task in (await auth_client.get("/tasks")).json():
+        due = datetime.fromisoformat(task["due_date"].replace("Z", "+00:00"))
+        assert due.tzinfo is not None, task["due_date"]
+        assert due == expected

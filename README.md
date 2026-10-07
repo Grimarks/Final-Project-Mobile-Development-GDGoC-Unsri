@@ -200,6 +200,20 @@ selalu jalan sebelum server start.
 | Disk tidak permanen | File PDF fisik hilang saat redeploy | Teks hasil ekstraksi tersimpan di database, jadi ringkasan & kuis tetap jalan |
 | Rate limit dihitung per akun | Akun demo bersama cepat mentok | Naikkan `RATE_LIMIT_SNAP` / `RATE_LIMIT_AI` di tab **Environment** service, atau `RATE_LIMIT_ENABLED=false` |
 
+**Akun demo untuk booth.** `backend/scripts/seed_demo.py` membuat (atau me-reset)
+akun demo berisi data realistis lewat API publik — 5 mata kuliah, 9 task dengan deadline
+dihitung dari hari ini (termasuk prioritas HIGH), streak 5 hari, materi PDF
+"Normalisasi Basis Data" (siap diringkas & dibuatkan kuis), dan jadwal AI hari ini yang
+sudah di-accept:
+
+```bash
+cd backend
+python scripts/seed_demo.py --base-url https://<nama-service>.onrender.com \
+    --email demo@campusflow.app --password '<password-demo>'
+```
+
+Jalankan ulang pagi hari-H supaya deadline & jadwalnya relatif ke hari itu.
+
 Server menolak start kalau `JWT_SECRET` masih nilai bawaan saat memakai PostgreSQL, supaya
 tidak ada token yang bisa dipalsukan. Test backend juga bisa dijalankan terhadap
 PostgreSQL sungguhan: `TEST_DATABASE_URL=postgresql+asyncpg://user:pass@host/db pytest`.
