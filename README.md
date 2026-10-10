@@ -17,7 +17,7 @@ Dibangun sebagai final project mata kuliah Mobile Development.
 | **Auth** | JWT access + refresh token, password di-hash bcrypt |
 | **Fitur AI** | Groq API (`openai/gpt-oss-120b`) — chat planner, penyusun jadwal, ringkasan & kuis materi |
 | **Platform** | iOS (iPhone) dan Android, satu codebase Flutter |
-| **Testing** | pytest (backend, 73 test), flutter_test unit+widget (mobile, 73 test), plus 1 integration test end-to-end — semuanya hijau |
+| **Testing** | pytest (backend, 131 test), flutter_test unit+widget (mobile, 100 test), plus 1 integration test end-to-end — semuanya hijau |
 
 ### Fitur
 
@@ -416,7 +416,7 @@ pip install -r requirements-dev.txt
 pytest -v
 ```
 
-**Hasil: 73 passed.** (lihat `screenshots/testing/` untuk screenshot hasil run-nya)
+**Hasil: 131 passed.** (lihat `screenshots/testing/` untuk screenshot hasil run-nya)
 
 | File | Cakupan |
 |---|---|
@@ -447,7 +447,7 @@ cd mobile
 flutter test
 ```
 
-**Hasil: 73 passed.** (lihat `screenshots/testing/` untuk screenshot hasil run-nya)
+**Hasil: 100 passed.** (lihat `screenshots/testing/` untuk screenshot hasil run-nya)
 
 | File | Cakupan |
 |---|---|
@@ -482,20 +482,24 @@ kejadwal. Hasil: **all tests passed** — lihat `screenshots/testing/mobile_inte
 
 ## 7. Screenshot
 
-Semua ada di folder [`screenshots/`](screenshots/), diambil langsung dari app (akun demo
-`test2@gmail.com`) di iPhone 17 Pro Max Simulator:
+Semua ada di folder [`screenshots/`](screenshots/), diambil langsung dari app di
+iPhone 17 Pro Max Simulator. Layar yang ikut berubah sejak Snap & Go, materi, dan kuis
+ditambahkan diambil ulang pakai akun demo booth (`scripts/seed_demo.py`) lewat
+`mobile/integration_test/booth_screenshots_test.dart`.
 
 | Alur | File |
 |---|---|
 | Login & Register | `01_login.png`, `02_register.png` |
-| Home (setelah login) | `03_home.png` |
-| Tasks (daftar + form tambah) | `04_tasks.png`, `05_add_task_sheet.png` |
+| Home (Snap & Go, plan hari ini, Today's Focus) | `03_home.png` |
+| Tasks (daftar, menu aksi, edit, form tambah) | `04_tasks.png`, `25_task_actions.png`, `26_edit_task.png`, `05_add_task_sheet.png` |
+| **Snap & Go** — paste pengumuman grup kelas → AI → task | `27_snap_pick.png` → `28_snap_paste.png` → `29_snap_review.png` → `30_snap_added.png` |
 | AI Planner — pilihan | `06_ai_choice.png` |
 | AI Planner — generate random | `07_ai_random_ask.png` → `08_ai_random_reply.png` → `09_ai_random_generated.png` |
 | AI Planner — adjust plan aktif | `10_ai_adjust_input.png` → `11_ai_adjust_result.png` |
 | AI Planner — chat bebas | `12_ai_chat_empty.png` → `13_ai_chat_reply.png` → `15_ai_chat_generated.png` |
 | Study session (timer, fast-forward, feedback) | `16_study_idle.png` → `17_study_running.png` → `18_study_fastforward.png` → `19_study_feedback.png` → `20_tasks_after_session.png` |
-| Profile (mata kuliah, Face ID, materials) | `21_profile_full.png`, `22_materials.png`, `23_edit_profile.png`, `24_change_password.png` |
+| Profile (mata kuliah, materials, akun) | `21_profile_full.png`, `23_edit_profile.png`, `24_change_password.png` |
+| **Materi PDF** — ringkasan AI & kuis | `22_materials.png` → `31_material_detail.png` → `32_material_summary.png` → `33_quiz_question.png` → `34_quiz_answered.png` → `35_quiz_result.png` |
 | Hasil testing — unit, widget, & integration test | [`screenshots/testing/`](screenshots/testing/) |
 
 ---
@@ -513,7 +517,7 @@ Semua ada di folder [`screenshots/`](screenshots/), diambil langsung dari app (a
 │   │   ├── routers/       # auth, courses, tasks, study_sessions, materials, ai
 │   │   ├── services/      # planning_service, groq_service, chat_service, materials_service
 │   │   └── alembic/       # migrasi
-│   └── tests/             # 73 test, lihat §6.1
+│   └── tests/             # 131 test, lihat §6.1
 ├── mobile/
 │   ├── lib/
 │   │   ├── core/
@@ -524,8 +528,8 @@ Semua ada di folder [`screenshots/`](screenshots/), diambil langsung dari app (a
 │   │   │   └── notifications/ # NotificationService (reminder task & sesi)
 │   │   ├── features/      # auth (+biometric), dashboard, tasks, courses, planner, materials, study_session, profile
 │   │   └── main.dart
-│   └── test/               # 73 test, lihat §6.2
-├── screenshots/            # screenshot tiap layar (pakai akun test2@gmail.com) + hasil testing
+│   └── test/               # 100 test, lihat §6.2
+├── screenshots/            # screenshot tiap layar + hasil testing
 ├── design/                 # mockup HTML desain
 └── README.md
 ```

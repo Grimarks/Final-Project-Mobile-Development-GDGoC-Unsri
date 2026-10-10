@@ -4,7 +4,7 @@ baru kesimpen pas user konfirmasi lewat /ai/chat/confirm-tasks."""
 from __future__ import annotations
 
 import base64
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from app.core.config import settings
@@ -58,6 +58,20 @@ def detect_audio_ext(data: bytes) -> str | None:
     return None
 
 
+HARI = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"]
+
+
+def upcoming_calendar(now: datetime, days: int = 14) -> str:
+    """Daftar tanggal + nama hari ke depan. LLM sering salah ngitung "Jumat" /
+    "Rabu depan" kalau cuma dikasih tanggal hari ini, jadi dikasih contekan."""
+    lines = []
+    for i in range(days):
+        d = now + timedelta(days=i)
+        label = " (hari ini)" if i == 0 else " (besok)" if i == 1 else ""
+        lines.append(f"- {HARI[d.weekday()]} {d.strftime('%Y-%m-%d')}{label}")
+    return "\n".join(lines)
+
+
 def build_snap_content(
     *,
     image: bytes | None,
@@ -65,9 +79,17 @@ def build_snap_content(
     text: str | None,
     course_names: list[str],
 ) -> list[dict[str, Any]]:
-    today = datetime.now(settings.tz).strftime("%Y-%m-%d (%A)")
+    now = datetime.now(settings.tz)
+    today = f"{HARI[now.weekday()]} {now.strftime('%Y-%m-%d')}"
     courses = ", ".join(course_names) if course_names else "(belum ada)"
-    intro = f"Hari ini: {today}.\nMata kuliah milik mahasiswa: {courses}."
+    intro = (
+        f"Hari ini: {today}.\n"
+        "Kalender 14 hari ke depan — cocokkan nama hari ke tabel ini, jangan dihitung "
+        'sendiri. Nama hari ("Jumat", "Rabu depan") = tanggal terdekat SETELAH hari ini '
+        'dengan nama hari itu; "minggu depan" tanpa nama hari = Senin berikutnya:\n'
+        f"{upcoming_calendar(now)}\n"
+        f"Mata kuliah milik mahasiswa: {courses}."
+    )
     if text:
         intro += f"\n\nTeks pengumuman:\n{text}"
     intro += "\n\nEkstrak daftar tugasnya."
