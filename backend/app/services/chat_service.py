@@ -92,7 +92,10 @@ EXTRACT_SYSTEM_PROMPT = (
     'fence. Format: {"tasks": [{"course": str, "title": str, '
     '"type": "assignment"|"exam"|"quiz", "difficulty": "easy"|"medium"|"hard", '
     '"due_date": "YYYY-MM-DD" atau null}]}. '
-    "Nama course pakai kapitalisasi rapi (Title Case). title singkat & jelas, maksimal "
+    "Kalau mata kuliah yang disebut (termasuk singkatan, mis. \"RPL\", \"basdat\") cocok "
+    "dengan salah satu mata kuliah milik mahasiswa, pakai nama PERSIS dari daftar itu. "
+    "Jangan usulkan tugas yang sudah ada di daftar tugas mahasiswa. "
+    "Nama course baru pakai kapitalisasi rapi (Title Case). title singkat & jelas, maksimal "
     "8 kata. Kalau tanggal disebut relatif (\"besok\", \"minggu depan\"), ubah ke "
     "YYYY-MM-DD berdasarkan tanggal hari ini yang diberikan di bawah; kalau tidak disebut, "
     'null. Kalau mahasiswa sama sekali tidak menyebut mata kuliah apa pun, balas '
@@ -100,7 +103,11 @@ EXTRACT_SYSTEM_PROMPT = (
 )
 
 
-def build_extract_prompt(history: list[ChatMessage]) -> str:
+def build_extract_prompt(
+    history: list[ChatMessage],
+    course_names: list[str] | None = None,
+    open_tasks: list[str] | None = None,
+) -> str:
     # tanggal versi mahasiswa (WIB), bukan UTC — jam 00-07 WIB UTC-nya masih kemaren
     today = datetime.now(settings.tz).strftime("%Y-%m-%d")
     lines = [
@@ -108,10 +115,21 @@ def build_extract_prompt(history: list[ChatMessage]) -> str:
         for m in history[-MAX_EXTRACT_MESSAGES:]
     ]
     conversation = "\n".join(lines) if lines else "(percakapan kosong)"
-    return f"Hari ini: {today}\n\nPercakapan:\n{conversation}\n\nEkstrak daftar tugasnya."
+    courses = ", ".join(course_names) if course_names else "(belum ada)"
+    tasks = "\n".join(f"- {t}" for t in open_tasks) if open_tasks else "(belum ada)"
+    return (
+        f"Hari ini: {today}\n"
+        f"Mata kuliah milik mahasiswa: {courses}\n"
+        f"Tugas yang sudah ada:\n{tasks}\n\n"
+        f"Percakapan:\n{conversation}\n\nEkstrak daftar tugasnya."
+    )
 
 
-async def extract_tasks(history: list[ChatMessage]) -> list[TaskCandidate]:
+async def extract_tasks(
+    history: list[ChatMessage],
+    course_names: list[str] | None = None,
+    open_tasks: list[str] | None = None,
+) -> list[TaskCandidate]:
     """Usul task/course dari histori chat. Gagal -> list kosong aja, jangan error ke
     user — ini best-effort, bukan jalur kritis kayak build_plan."""
     if not history:
@@ -121,7 +139,9 @@ async def extract_tasks(history: list[ChatMessage]) -> list[TaskCandidate]:
         # jadi kalo kosong coba sekali lagi
         for _ in range(2):
             raw = await complete_json(
-                EXTRACT_SYSTEM_PROMPT, build_extract_prompt(history), temperature=0.0
+                EXTRACT_SYSTEM_PROMPT,
+                build_extract_prompt(history, course_names, open_tasks),
+                temperature=0.0,
             )
             items = raw.get("tasks") if isinstance(raw, dict) else raw
             if not isinstance(items, list):
@@ -162,6 +182,7 @@ _RANGE_RE = re.compile(
     rf"(?:jam|pukul)?\s*{_CLOCK}\s*{_PERIOD}?",
     re.IGNORECASE,
 )
+_PERIOD_RE = re.compile(rf"\b{_PERIOD}\b", re.IGNORECASE)
 _HOURS_RE = re.compile(r"(?<![:.\d])(\d{1,2}(?:[.,]\d)?)\s*jam\b", re.IGNORECASE)
 
 
@@ -172,6 +193,16 @@ def to_24h(hour: int, period: str | None) -> int:
     if period in ("sore", "malam") and 1 <= hour < 12:
         return hour + 12
     return hour
+
+
+def _context_period(text: str, start: int, end: int) -> str | None:
+    """Periode yg gak nempel ke angkanya: "*malam ini* aku free jam 7 sampai 10",
+    "jam 7-10 *nanti malam*". Ambil yg paling deket sebelum range, baru sesudahnya."""
+    before = _PERIOD_RE.findall(text[max(0, start - 60):start])
+    if before:
+        return before[-1]
+    after = _PERIOD_RE.search(text[end:end + 25])
+    return after.group(1) if after else None
 
 
 def parse_time_window(history: list[ChatMessage]) -> TimeWindow:
@@ -188,6 +219,8 @@ def parse_time_window(history: list[ChatMessage]) -> TimeWindow:
             # "3 - 4 soal" jangan ke-parse jadi jam: wajib ada penanda waktu
             if not (prefix or m1 or m2 or p1 or p2):
                 continue
+            if not (p1 or p2):
+                p2 = _context_period(text, m.start(), m.end())
             start_h, end_h = to_24h(int(h1), p1 or p2), to_24h(int(h2), p2)
             if start_h > 24 or end_h > 24:
                 continue

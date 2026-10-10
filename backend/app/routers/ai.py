@@ -309,7 +309,14 @@ async def extract_chat_tasks(
         .scalars()
         .all()
     )
-    candidates = await chat_service.extract_tasks(history)
+    tasks = await _user_tasks(user, db)
+    courses = (await db.execute(select(Course.name).where(Course.user_id == user.id))).scalars()
+    open_tasks = [
+        f"{t.title} ({t.course.name})" if t.course else t.title
+        for t in tasks
+        if t.status != "done"
+    ]
+    candidates = await chat_service.extract_tasks(history, list(courses), open_tasks)
     return ExtractTasksResponse(tasks=await _drop_existing(candidates, user, db))
 
 

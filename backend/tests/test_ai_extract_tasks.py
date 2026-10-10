@@ -110,3 +110,17 @@ def test_full_datetime_due_date_untouched():
         {"course": "Fisika", "title": "Kuis", "due_date": "2026-10-07T03:00:00Z"}
     )
     assert candidate.due_date.hour == 3
+
+
+def test_extract_prompt_lists_courses_and_open_tasks():
+    """Biar "UTS RPL" dicocokin ke course yg udah ada, bukan bikin course "Rpl" baru."""
+    from app.models.chat_message import ChatMessage
+    from app.services.chat_service import build_extract_prompt
+
+    prompt = build_extract_prompt(
+        [ChatMessage(role="user", content="besok UTS RPL")],
+        ["Rekayasa Perangkat Lunak"],
+        ["UTS Rekayasa Perangkat Lunak (Rekayasa Perangkat Lunak)"],
+    )
+    assert "Mata kuliah milik mahasiswa: Rekayasa Perangkat Lunak" in prompt
+    assert "- UTS Rekayasa Perangkat Lunak (Rekayasa Perangkat Lunak)" in prompt

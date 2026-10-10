@@ -403,15 +403,16 @@ class _GeneratedPanelState extends ConsumerState<_GeneratedPanel> {
       _ => 'local planner',
     };
     final window = plan.windowLabel;
+    // mode acak gak ngambil dari task, jadi "0 open tasks" malah bikin bingung
+    final tasks = plan.generatedBy == 'random' ? '' : '${plan.openTaskCount} open tasks · ';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           window != null
-              ? 'Free time $window · ${plan.openTaskCount} open tasks · $source'
-              : 'Generated from ${plan.openTaskCount} open tasks · '
-                  '${plan.availableHours} hrs available · $source',
+              ? 'Free time $window · $tasks$source'
+              : 'Generated from $tasks${plan.availableHours} hrs available · $source',
           style: AppText.body(11.5,
               weight: FontWeight.w600, color: AppColors.inkMuted(0.55)),
         ),

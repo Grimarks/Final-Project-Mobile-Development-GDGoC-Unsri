@@ -39,6 +39,11 @@ def _task(id: int, title: str = "T", difficulty: str = "hard") -> Task:
         ("jam 1 siang sampai 3 sore", "13:00", "15:00"),
         ("pukul 19.00-21.30", "19:00", "21:30"),
         ("jam 10 sampai 1", "10:00", "13:00"),
+        # "malam"/"sore" gak nempel ke angkanya
+        ("Malam ini aku free dari jam 7 sampai jam 10.", "19:00", "22:00"),
+        ("jam 7-10 nanti malam", "19:00", "22:00"),
+        ("besok pagi kuis, malam ini jam 7 sampai 9", "19:00", "21:00"),
+        ("sore ini jam 3-5", "15:00", "17:00"),
     ],
 )
 def test_parse_time_window(text, start, end):

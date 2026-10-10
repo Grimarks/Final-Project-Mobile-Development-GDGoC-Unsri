@@ -483,9 +483,9 @@ kejadwal. Hasil: **all tests passed** — lihat `screenshots/testing/mobile_inte
 ## 7. Screenshot
 
 Semua ada di folder [`screenshots/`](screenshots/), diambil langsung dari app di
-iPhone 17 Pro Max Simulator. Layar yang ikut berubah sejak Snap & Go, materi, dan kuis
-ditambahkan diambil ulang pakai akun demo booth (`scripts/seed_demo.py`) lewat
-`mobile/integration_test/booth_screenshots_test.dart`.
+iPhone 17 Pro Max Simulator pakai akun demo booth (`scripts/seed_demo.py`). Bisa diambil
+ulang otomatis lewat `mobile/integration_test/booth_screenshots_test.dart` dan
+`booth_screenshots_planner_test.dart` (lihat komentar di atas file-nya).
 
 | Alur | File |
 |---|---|
@@ -496,7 +496,7 @@ ditambahkan diambil ulang pakai akun demo booth (`scripts/seed_demo.py`) lewat
 | AI Planner — pilihan | `06_ai_choice.png` |
 | AI Planner — generate random | `07_ai_random_ask.png` → `08_ai_random_reply.png` → `09_ai_random_generated.png` |
 | AI Planner — adjust plan aktif | `10_ai_adjust_input.png` → `11_ai_adjust_result.png` |
-| AI Planner — chat bebas | `12_ai_chat_empty.png` → `13_ai_chat_reply.png` → `15_ai_chat_generated.png` |
+| AI Planner — chat bebas (+ review task baru dari chat) | `12_ai_chat_empty.png` → `13_ai_chat_reply.png` → `14_ai_chat_review.png` → `15_ai_chat_generated.png` |
 | Study session (timer, fast-forward, feedback) | `16_study_idle.png` → `17_study_running.png` → `18_study_fastforward.png` → `19_study_feedback.png` → `20_tasks_after_session.png` |
 | Profile (mata kuliah, materials, akun) | `21_profile_full.png`, `23_edit_profile.png`, `24_change_password.png` |
 | **Materi PDF** — ringkasan AI & kuis | `22_materials.png` → `31_material_detail.png` → `32_material_summary.png` → `33_quiz_question.png` → `34_quiz_answered.png` → `35_quiz_result.png` |

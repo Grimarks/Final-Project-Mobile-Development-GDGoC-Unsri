@@ -3,21 +3,14 @@
 // siap, test nge-print `SHOT:<nama>` lalu nunggu beberapa detik; runner di host
 // yg nangkep baris itu dan manggil `xcrun simctl io booted screenshot`.
 //
-//   flutter test integration_test/booth_screenshots_test.dart -d <simulator> \
+//   flutter test integration_test/booth_screenshots_test.dart (atau booth_screenshots_planner_test.dart) -d <simulator> \
 //     --dart-define=DEMO_PASSWORD=... | while read l; do ...; done
-import 'package:campusflow/core/network/local_cache.dart';
-import 'package:campusflow/core/widgets/brutal_bottom_nav.dart';
-import 'package:campusflow/core/widgets/brutal_text_field.dart';
 import 'package:campusflow/features/materials/presentation/quiz_screen.dart';
-import 'package:campusflow/main.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-const _email = String.fromEnvironment('DEMO_EMAIL', defaultValue: 'demo@campusflow.app');
-const _password = String.fromEnvironment('DEMO_PASSWORD');
+import 'booth_shot_helpers.dart';
 
 const _announcement =
     '[Info Kelas] Assalamualaikum teman-teman, reminder ya:\n'
@@ -26,78 +19,18 @@ const _announcement =
     '3. Presentasi SRS Rekayasa Perangkat Lunak Senin depan, siapkan slide per kelompok\n'
     'Makasih 🙏';
 
-Future<void> _sleep(WidgetTester tester, int ms) =>
-    tester.runAsync(() => Future<void>.delayed(Duration(milliseconds: ms)));
-
-// pumpAndSettle gak nungguin HTTP beneran, jadi polling manual sampai muncul
-Future<void> waitFor(WidgetTester tester, Finder finder, {int seconds = 90}) async {
-  final end = DateTime.now().add(Duration(seconds: seconds));
-  while (DateTime.now().isBefore(end)) {
-    await tester.pump(const Duration(milliseconds: 100));
-    if (finder.evaluate().isNotEmpty) {
-      await tester.pumpAndSettle();
-      return;
-    }
-    await _sleep(tester, 400);
-  }
-  throw TestFailure('Timeout nunggu $finder');
-}
-
-Future<void> shot(WidgetTester tester, String name) async {
-  await tester.pumpAndSettle();
-  await _sleep(tester, 700);
-  await tester.pump();
-  // ignore: avoid_print
-  print('SHOT:$name');
-  await _sleep(tester, 3000);
-}
-
-Future<void> enterField(WidgetTester tester, String label, String text) async {
-  final field = find.byWidgetPredicate((w) => w is BrutalTextField && w.label == label);
-  await tester.enterText(find.descendant(of: field.first, matching: find.byType(TextField)), text);
-  await tester.pump();
-}
-
-Future<void> tapText(WidgetTester tester, String text) async {
-  final finder = find.text(text).last;
-  await tester.ensureVisible(finder);
-  await tester.pumpAndSettle();
-  await tester.tap(finder);
-  await tester.pumpAndSettle();
-}
-
-Future<void> tapNav(WidgetTester tester, String label) async {
-  await tester.tap(find.descendant(of: find.byType(BrutalBottomNav), matching: find.text(label)));
-  await tester.pumpAndSettle();
-  await _sleep(tester, 1500);
-  await tester.pumpAndSettle();
-}
-
-Future<void> hideKeyboard(WidgetTester tester) async {
-  FocusManager.instance.primaryFocus?.unfocus();
-  await tester.pumpAndSettle();
-  await _sleep(tester, 500);
-}
-
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('screenshot booth', (tester) async {
-    expect(_password, isNotEmpty, reason: 'isi --dart-define=DEMO_PASSWORD=...');
-    // mulai dari kondisi bersih: gak ada sesi lama / gerbang Face ID
-    await (await SharedPreferences.getInstance()).clear();
-    await LocalCache.init();
-    await tester.pumpWidget(const ProviderScope(child: CampusFlowApp()));
-    await tester.pumpAndSettle();
+    await launchApp(tester);
 
     // --- Login ---------------------------------------------------------------
-    await enterField(tester, 'Email', _email);
-    await enterField(tester, 'Password', _password);
+    await enterField(tester, 'Email', demoEmail);
+    await enterField(tester, 'Password', demoPassword);
     await hideKeyboard(tester);
     await shot(tester, '01_login');
-    await tapText(tester, 'LOG IN');
-    await waitFor(tester, find.textContaining('Hi, '));
-    await _sleep(tester, 2500);
+    await logIn(tester);
     await shot(tester, '03_home');
 
     // --- Tasks + menu aksi --------------------------------------------------
@@ -125,7 +58,7 @@ void main() {
     await tester.pump();
     await waitFor(tester, find.text('Tasks'));
     await shot(tester, '31_snap_added');
-    await _sleep(tester, 3000);
+    await sleep(tester, 3000);
     await tester.pumpAndSettle();
 
     // --- Profile -> Materials -> ringkasan & kuis ---------------------------
