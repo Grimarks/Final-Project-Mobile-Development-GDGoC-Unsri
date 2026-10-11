@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Konsep D: petir biru (ikon tab AI di app) di dalam lingkaran — energi & AI planner -->
+  <rect width="1024" height="1024" fill="#FFD23F"/>
+  <g transform="translate(512 512) scale(0.9) translate(-524 -524)">
+  <g stroke="#0D0D0D" stroke-width="36" stroke-linejoin="miter">
+    <circle cx="536" cy="536" r="310" fill="#0D0D0D"/>
+    <circle cx="512" cy="512" r="310" fill="#F5F1E8"/>
+    <g transform="translate(512 512) scale(0.82) translate(-512 -512)">
+      <path transform="translate(30 30)" fill="#0D0D0D" d="M560 200 L330 580 L495 580 L430 830 L710 440 L540 440 L650 200 Z"/>
+      <path fill="#4C6FFF" d="M560 200 L330 580 L495 580 L430 830 L710 440 L540 440 L650 200 Z"/>
+    </g>
+  </g>
+  </g>
+</svg>

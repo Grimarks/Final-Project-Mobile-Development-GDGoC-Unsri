@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Android 13+ themed icon — cuma alpha yg dipakai (warna diganti sistem).
+       Versi garis: kartu (outline) + centang + sudut AI, tanpa bayangan. -->
+  <g transform="translate(512 512) scale(0.66) translate(-520 -500)">
+    <g transform="rotate(-6 512 512)" fill="none" stroke="#FFFFFF" stroke-linejoin="miter">
+      <rect x="236" y="236" width="500" height="520" stroke-width="56"/>
+      <path d="M340 500 L450 610 L640 400" stroke-width="80" stroke-linecap="square"/>
+      <rect x="640" y="184" width="174" height="174" fill="#FFFFFF" stroke="none"/>
+    </g>
+  </g>
+</svg>

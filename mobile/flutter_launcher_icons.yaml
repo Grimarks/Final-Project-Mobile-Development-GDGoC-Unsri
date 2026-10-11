@@ -1,0 +1,21 @@
+# Ikon app CampusFlow. Sumber: ../branding/*.svg -> PNG via ../branding/export_icons.sh
+# Generate ulang:  dart run flutter_launcher_icons
+#   lalu: git checkout ios/Runner.xcodeproj/project.pbxproj
+#   (bug v0.14.4: ikut mengganti ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS
+#    jadi "AppIcon"; nama ikon kita memang sudah AppIcon, jadi file itu tidak perlu berubah)
+flutter_launcher_icons:
+  # iOS: 1024 full-bleed, alpha dibuang (App Store menolak ikon transparan)
+  ios: true
+  image_path_ios: "assets/icon/app_icon.png"
+  remove_alpha_ios: true
+
+  # Android: adaptive icon (foreground + latar biru + monochrome buat themed icon 13+)
+  android: true
+  image_path_android: "assets/icon/app_icon.png" # ikon lama (legacy) buat Android < 8
+  adaptive_icon_background: "#4C6FFF"
+  adaptive_icon_foreground: "assets/icon/android_foreground.png"
+  adaptive_icon_monochrome: "assets/icon/android_monochrome.png"
+  # PNG foreground sudah digambar untuk kanvas 108dp penuh (elemen di safe zone),
+  # jadi jangan dikecilkan lagi (default package: inset 16%)
+  adaptive_icon_foreground_inset: 0
+  min_sdk_android: 21

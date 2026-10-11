@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Konsep A: huruf C tebal + "percikan" kuning AI di bukaan C -->
+  <rect width="1024" height="1024" fill="#4C6FFF"/>
+  <g transform="translate(512 512) scale(0.9) translate(-530 -530)">
+  <g stroke="#0D0D0D" stroke-width="36" stroke-linejoin="miter">
+    <path transform="translate(40 40)" fill="#0D0D0D" d="M727.5 706.1 A290 290 0 1 1 727.5 317.9 L616 418.3 A140 140 0 1 0 616 605.7 Z"/>
+    <path fill="#F5F1E8" d="M727.5 706.1 A290 290 0 1 1 727.5 317.9 L616 418.3 A140 140 0 1 0 616 605.7 Z"/>
+    <path transform="translate(28 28)" fill="#0D0D0D" d="M700 422 L790 512 L700 602 L610 512 Z"/>
+    <path fill="#FFD23F" d="M700 422 L790 512 L700 602 L610 512 Z"/>
+  </g>
+  </g>
+</svg>

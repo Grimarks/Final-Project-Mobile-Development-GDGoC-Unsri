@@ -6,6 +6,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/theme/brutal_decorations.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/text_styles.dart';
+import '../../../core/widgets/app_logo.dart';
 import '../../../core/widgets/brutal_button.dart';
 import '../../../core/widgets/brutal_text_field.dart';
 import '../domain/password_rules.dart';
@@ -114,14 +115,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('CampusFlow',
-                  style: AppText.display(36, weight: FontWeight.w900)
-                      .copyWith(letterSpacing: -0.5)),
+              Row(
+                children: [
+                  const AppLogo(size: 48),
+                  const SizedBox(width: 14),
+                  Text('CampusFlow',
+                      style: AppText.display(36, weight: FontWeight.w900)
+                          .copyWith(letterSpacing: -0.5)),
+                ],
+              ),
               const SizedBox(height: 10),
-              // garis kuning tebal di bawah wordmark
+              // garis kuning tebal di bawah wordmark (sejajar teks, bukan logo)
               Container(
                 width: 56,
                 height: 8,
+                margin: const EdgeInsets.only(left: 62),
                 decoration: BoxDecoration(
                   color: AppColors.accent,
                   border: Brutal.border(width: Brutal.borderWidthThin),
@@ -358,9 +366,11 @@ class _BiometricGateViewState extends ConsumerState<_BiometricGateView> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 100, 24, 40),
+      padding: const EdgeInsets.fromLTRB(24, 64, 24, 40),
       child: Column(
         children: [
+          const AppLogo(size: 64),
+          const SizedBox(height: 16),
           Text('CampusFlow',
               style:
                   AppText.display(36, weight: FontWeight.w900).copyWith(letterSpacing: -0.5)),

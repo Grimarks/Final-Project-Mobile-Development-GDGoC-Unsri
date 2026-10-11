@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Android adaptive icon — layer foreground (latar transparan; latar biru #4C6FFF
+       diset di flutter_launcher_icons.yaml). Semua elemen di dalam safe zone lingkaran
+       66dp/108dp (radius ±313px dari tengah). -->
+  <g transform="translate(512 512) scale(0.66) translate(-520 -500)">
+    <g transform="rotate(-6 512 512)" stroke="#0D0D0D" stroke-width="36" stroke-linejoin="miter">
+      <rect x="276" y="276" width="500" height="520" fill="#0D0D0D"/>
+      <rect x="236" y="236" width="500" height="520" fill="#F5F1E8"/>
+      <path d="M340 500 L450 610 L640 400" fill="none" stroke-width="76" stroke-linecap="square"/>
+      <rect x="674" y="218" width="150" height="150" fill="#0D0D0D"/>
+      <rect x="652" y="196" width="150" height="150" fill="#FFD23F"/>
+    </g>
+  </g>
+</svg>

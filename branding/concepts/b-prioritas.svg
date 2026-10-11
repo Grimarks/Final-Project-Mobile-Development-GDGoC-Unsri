@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Konsep B: tiga blok prioritas (merah/oranye/hijau) yang tersusun = tugas sudah diurutkan -->
+  <rect width="1024" height="1024" fill="#F5F1E8"/>
+  <g transform="translate(512 512) scale(0.76) translate(-530 -530)">
+  <g stroke="#0D0D0D" stroke-width="36" stroke-linejoin="miter">
+    <rect x="268" y="298" width="560" height="130" fill="#0D0D0D"/>
+    <rect x="268" y="483" width="440" height="130" fill="#0D0D0D"/>
+    <rect x="268" y="668" width="320" height="130" fill="#0D0D0D"/>
+    <rect x="232" y="262" width="560" height="130" fill="#FF4C4C"/>
+    <rect x="232" y="447" width="440" height="130" fill="#FF8A3D"/>
+    <rect x="232" y="632" width="320" height="130" fill="#3DDC84"/>
+  </g>
+  </g>
+</svg>

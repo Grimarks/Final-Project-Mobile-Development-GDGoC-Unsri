@@ -31,6 +31,10 @@ dev_dependencies:
   integration_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
+  assets:
+    # logo di dalam app (login & layar kunci); sumbernya branding/logo.svg
+    - assets/icon/app_icon.png

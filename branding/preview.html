@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>CampusFlow Icon Concepts</title>
+<style>
+  :root { --ink: #0D0D0D; --bg: #F5F1E8; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 40px; background: #FFFFFF; color: var(--ink); font-family: -apple-system, "Inter", sans-serif; width: 2560px; }
+  h1 { font-size: 44px; margin: 0 0 8px; }
+  .lead { font-size: 20px; margin: 0 0 32px; color: #444; }
+  .concept { display: flex; gap: 40px; padding: 32px; border: 4px solid var(--ink); margin-bottom: 40px; background: var(--bg); }
+  .big img { width: 1024px; height: 1024px; display: block; border: 2px dashed #999; }
+  .big .safe { position: relative; }
+  .big .safe::after { content: ""; position: absolute; left: 16.6%; top: 16.6%; width: 66.8%; height: 66.8%; border-radius: 50%; border: 3px dashed rgba(255,0,0,.6); pointer-events: none; }
+  .side { display: flex; flex-direction: column; gap: 28px; width: 1350px; }
+  .title { font-size: 40px; font-weight: 800; }
+  .why { font-size: 22px; line-height: 1.4; }
+  .label { font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #555; margin-bottom: 8px; }
+  .sizes { display: flex; align-items: flex-end; gap: 36px; }
+  .sizes figure { margin: 0; text-align: center; font-size: 14px; color: #555; }
+  .ios, .android { overflow: hidden; display: block; position: relative; }
+  .ios { border-radius: 22.37%; }
+  .android { border-radius: 50%; }
+  .ios img, .android img { width: 100%; height: 100%; display: block; }
+  /* adaptive icon: layer 108dp, yg kelihatan cuma 72dp tengah -> zoom 1.5x */
+  .android img { transform: scale(1.5); }
+  .wall { padding: 28px 32px; border-radius: 28px; display: flex; gap: 28px; align-items: flex-start; }
+  .wall.light { background: linear-gradient(135deg, #DCE6FF, #F9E3EE 60%, #FFF4D6); }
+  .wall.dark { background: linear-gradient(135deg, #10131F, #2A1E3D 60%, #0E2A2A); }
+  .app { width: 88px; text-align: center; font-size: 13px; }
+  .wall.dark .app { color: #FFF; }
+  .app .ios, .app .android { width: 60px; height: 60px; margin: 0 auto 6px; }
+  .settings { background: #F2F2F7; border-radius: 16px; padding: 6px 0; width: 420px; }
+  .settings.dark { background: #1C1C1E; color: #FFF; }
+  .row { display: flex; align-items: center; gap: 14px; padding: 8px 16px; font-size: 17px; }
+  .row .ios { width: 29px; height: 29px; border-radius: 22.37%; }
+  .row .android { width: 29px; height: 29px; }
+  .walls { display: flex; gap: 24px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<h1>CampusFlow — 4 konsep ikon</h1>
+<p class="lead">Lingkaran merah putus-putus di gambar 1024 = safe zone adaptive icon Android (66% tengah). Mask Android disimulasikan seperti adaptive icon (layer dizoom 1,5×). Ikon pembanding di wallpaper adalah ikon generik, bukan app sungguhan.</p>
+<div id="root"></div>
+<script>
+  const concepts = [
+    { file: "a-huruf-c.svg", name: "A — Huruf C + percikan AI", why: "Huruf C (CampusFlow) yang tebal dengan permata kuning AI di bukaannya: paling mudah diingat sebagai \"merek\", kuning tetap jadi penanda AI seperti di app." },
+    { file: "b-prioritas.svg", name: "B — Blok prioritas", why: "Tiga blok merah/oranye/hijau yang memendek adalah blok prioritas di daftar Tasks — langsung bercerita \"tugasmu sudah diurutkan\"." },
+    { file: "c-checklist.svg", name: "C — Kartu tugas + centang", why: "Kartu tugas miring dengan centang besar dan sudut kuning AI: makna \"tugas beres dibantu AI\" terbaca dalam sekali lihat." },
+    { file: "d-petir.svg", name: "D — Petir AI", why: "Petir adalah ikon tab AI di bottom nav app; di lingkaran krem di atas kuning ia terasa energik dan menonjol di home screen." },
+  ];
+  // ikon pembanding generik (bukan merek)
+  const dummy = (bg, glyph) =>
+    "data:image/svg+xml;utf8," + encodeURIComponent(
+      `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='${bg}'/>${glyph}</svg>`);
+  const others = [
+    ["Pesan", dummy("#34C759", "<path d='M22 30h56v34H46l-14 12V64H22z' fill='white'/>")],
+    ["Kamera", dummy("#8E8E93", "<rect x='20' y='34' width='60' height='40' rx='6' fill='white'/><circle cx='50' cy='54' r='12' fill='#8E8E93'/>")],
+    ["Catatan", dummy("#FFCC00", "<rect x='0' y='0' width='100' height='22' fill='white' opacity='.9'/><path d='M22 44h56M22 58h56M22 72h40' stroke='#B38F00' stroke-width='5'/>")],
+    ["Musik", dummy("#FF2D55", "<path d='M42 70V30l30-6v40' stroke='white' stroke-width='7' fill='none'/><circle cx='36' cy='70' r='9' fill='white'/><circle cx='66' cy='64' r='9' fill='white'/>")],
+  ];
+  const icon = (cls, src, size) => `<span class="${cls}" style="width:${size}px;height:${size}px"><img src="${src}"></span>`;
+  const home = (src, cls, theme) => `
+    <div class="wall ${theme}">
+      ${others.slice(0, 2).map(([n, s]) => `<div class="app">${icon(cls, s, 60)}${n}</div>`).join("")}
+      <div class="app">${icon(cls, src, 60)}CampusFlow</div>
+      ${others.slice(2).map(([n, s]) => `<div class="app">${icon(cls, s, 60)}${n}</div>`).join("")}
+    </div>`;
+  const settings = (src, cls, theme) => `
+    <div class="settings ${theme}">
+      <div class="row">${icon(cls, others[0][1], 29)}Pesan</div>
+      <div class="row">${icon(cls, src, 29)}CampusFlow</div>
+      <div class="row">${icon(cls, others[3][1], 29)}Musik</div>
+    </div>`;
+  document.getElementById("root").innerHTML = concepts.map((c) => {
+    const src = "concepts/" + c.file;
+    const sizes = (cls) => [180, 60, 29].map((s) => `<figure>${icon(cls, src, s)}<figcaption>${s}px</figcaption></figure>`).join("");
+    return `
+    <section class="concept">
+      <div class="big"><div class="label">1024px (tanpa mask)</div><div class="safe"><img src="${src}"></div></div>
+      <div class="side">
+        <div class="title">${c.name}</div>
+        <div class="why">${c.why}</div>
+        <div><div class="label">iOS — mask squircle</div><div class="sizes">${sizes("ios")}</div></div>
+        <div><div class="label">Android — mask lingkaran (adaptive)</div><div class="sizes">${sizes("android")}</div></div>
+        <div><div class="label">Home screen terang &amp; gelap (60px)</div>
+          <div class="walls">${home(src, "ios", "light")}${home(src, "android", "dark")}</div></div>
+        <div><div class="label">Settings (29px) terang &amp; gelap</div>
+          <div class="walls">${settings(src, "ios", "")}${settings(src, "android", "dark")}</div></div>
+      </div>
+    </section>`;
+  }).join("");
+</script>
+</body>
+</html>
