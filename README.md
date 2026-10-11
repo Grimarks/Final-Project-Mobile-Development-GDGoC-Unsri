@@ -17,7 +17,7 @@ Dibangun sebagai final project mata kuliah Mobile Development.
 | **Auth** | JWT access + refresh token, password di-hash bcrypt |
 | **Fitur AI** | Groq API (`openai/gpt-oss-120b`) — chat planner, penyusun jadwal, ringkasan & kuis materi |
 | **Platform** | iOS (iPhone) dan Android, satu codebase Flutter |
-| **Testing** | pytest (backend, 131 test), flutter_test unit+widget (mobile, 100 test), plus 1 integration test end-to-end — semuanya hijau |
+| **Testing** | pytest (backend, 136 test), flutter_test unit+widget (mobile, 100 test), plus 1 integration test end-to-end — semuanya hijau |
 
 ### Fitur
 
@@ -416,7 +416,7 @@ pip install -r requirements-dev.txt
 pytest -v
 ```
 
-**Hasil: 131 passed.** (lihat `screenshots/testing/` untuk screenshot hasil run-nya)
+**Hasil: 136 passed.** (lihat `screenshots/testing/` untuk screenshot hasil run-nya)
 
 | File | Cakupan |
 |---|---|
@@ -517,7 +517,7 @@ ulang otomatis lewat `mobile/integration_test/booth_screenshots_test.dart` dan
 │   │   ├── routers/       # auth, courses, tasks, study_sessions, materials, ai
 │   │   ├── services/      # planning_service, groq_service, chat_service, materials_service
 │   │   └── alembic/       # migrasi
-│   └── tests/             # 131 test, lihat §6.1
+│   └── tests/             # 136 test, lihat §6.1
 ├── mobile/
 │   ├── lib/
 │   │   ├── core/
