@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
@@ -43,6 +44,17 @@ class NotificationService {
   // bukan tiba2 pas lagi bikin task
   Future<void> init() => _ensureReady();
 
+  // notif cuma pelengkap: kalo plugin native-nya error (mis. cache jadwal rusak),
+  // cukup di-log, jangan sampe exception-nya naik dan bikin layar error
+  Future<T?> _guard<T>(String action, Future<T> Function() call) async {
+    try {
+      return await call();
+    } catch (e) {
+      debugPrint('NotificationService.$action failed: $e');
+      return null;
+    }
+  }
+
   // TZDateTime.from pake instant absolut dari dateTime apa adanya, jadi tetep
   // bener walau tz.local belum ke-set ke zona asli device — gausah plugin tambahan
   tz.TZDateTime _asTz(DateTime dateTime) => tz.TZDateTime.from(dateTime, tz.local);
@@ -61,31 +73,34 @@ class NotificationService {
       final offset = _taskReminderOffsets[slot];
       final fireAt = dueDate.subtract(offset);
       if (!fireAt.isAfter(now)) continue;
-      await _plugin.zonedSchedule(
-        _taskNotificationId(taskId, slot),
-        switch (slot) {
-          0 => 'Due tomorrow: $title',
-          1 => 'Due in 1 hour: $title',
-          _ => 'Task due: $title',
-        },
-        offset == Duration.zero
-            ? "It's due now — don't forget to wrap it up."
-            : 'Start now so you finish on time.',
-        _asTz(fireAt),
-        const NotificationDetails(
-          android: AndroidNotificationDetails('task_due', 'Task due reminders'),
-          iOS: DarwinNotificationDetails(),
-        ),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-      );
+      await _guard(
+          'zonedSchedule',
+          () => _plugin.zonedSchedule(
+                _taskNotificationId(taskId, slot),
+                switch (slot) {
+                  0 => 'Due tomorrow: $title',
+                  1 => 'Due in 1 hour: $title',
+                  _ => 'Task due: $title',
+                },
+                offset == Duration.zero
+                    ? "It's due now — don't forget to wrap it up."
+                    : 'Start now so you finish on time.',
+                _asTz(fireAt),
+                const NotificationDetails(
+                  android: AndroidNotificationDetails('task_due', 'Task due reminders'),
+                  iOS: DarwinNotificationDetails(),
+                ),
+                androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+                uiLocalNotificationDateInterpretation:
+                    UILocalNotificationDateInterpretation.absoluteTime,
+              ));
     }
   }
 
   Future<void> cancelTaskDueReminder(int taskId) async {
-    await _plugin.cancel(_legacyTaskNotificationId(taskId));
+    await _guard('cancel', () => _plugin.cancel(_legacyTaskNotificationId(taskId)));
     for (var slot = 0; slot < _taskReminderOffsets.length; slot++) {
-      await _plugin.cancel(_taskNotificationId(taskId, slot));
+      await _guard('cancel', () => _plugin.cancel(_taskNotificationId(taskId, slot)));
     }
   }
 
@@ -93,69 +108,80 @@ class NotificationService {
   // plan sebelumnya dibatalin dulu biar gak dobel kalo accept plan lain
   Future<void> schedulePlanSessionReminders(List<PlanSessionReminder> sessions) async {
     await _ensureReady();
-    final pending = await _plugin.pendingNotificationRequests();
+    final pending =
+        await _guard('pendingNotificationRequests', _plugin.pendingNotificationRequests) ?? [];
     for (final request in pending) {
       if (request.id >= _planSessionBaseId && request.id <= _planSessionMaxId) {
-        await _plugin.cancel(request.id);
+        await _guard('cancel', () => _plugin.cancel(request.id));
       }
     }
     final now = DateTime.now();
     for (var i = 0; i < sessions.length; i++) {
       final session = sessions[i];
       if (!session.start.isAfter(now)) continue; // sesinya udah lewat
-      await _plugin.zonedSchedule(
-        _planSessionBaseId + i,
-        'Study session starting: ${session.title}',
-        session.timeLabel,
-        _asTz(session.start),
-        const NotificationDetails(
-          android: AndroidNotificationDetails('plan_session', 'Study plan reminders'),
-          iOS: DarwinNotificationDetails(),
-        ),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-      );
+      await _guard(
+          'zonedSchedule',
+          () => _plugin.zonedSchedule(
+                _planSessionBaseId + i,
+                'Study session starting: ${session.title}',
+                session.timeLabel,
+                _asTz(session.start),
+                const NotificationDetails(
+                  android: AndroidNotificationDetails('plan_session', 'Study plan reminders'),
+                  iOS: DarwinNotificationDetails(),
+                ),
+                androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+                uiLocalNotificationDateInterpretation:
+                    UILocalNotificationDateInterpretation.absoluteTime,
+              ));
     }
   }
 
   Future<void> scheduleSessionEndReminder(Duration after) async {
     await _ensureReady();
-    await _plugin.zonedSchedule(
-      _sessionNotificationId,
-      'Focus session complete',
-      'Great job! Come back to log how it went.',
-      _asTz(DateTime.now().add(after)),
-      const NotificationDetails(
-        android: AndroidNotificationDetails('session_end', 'Study session reminders'),
-        iOS: DarwinNotificationDetails(),
-      ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-    );
+    await _guard(
+        'zonedSchedule',
+        () => _plugin.zonedSchedule(
+              _sessionNotificationId,
+              'Focus session complete',
+              'Great job! Come back to log how it went.',
+              _asTz(DateTime.now().add(after)),
+              const NotificationDetails(
+                android: AndroidNotificationDetails('session_end', 'Study session reminders'),
+                iOS: DarwinNotificationDetails(),
+              ),
+              androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+              uiLocalNotificationDateInterpretation:
+                  UILocalNotificationDateInterpretation.absoluteTime,
+            ));
   }
 
-  Future<void> cancelSessionEndReminder() => _plugin.cancel(_sessionNotificationId);
+  Future<void> cancelSessionEndReminder() =>
+      _guard('cancel', () => _plugin.cancel(_sessionNotificationId));
 
   Future<void> cancelAll() async {
     await _ensureReady();
-    await _plugin.cancelAll();
+    await _guard('cancelAll', _plugin.cancelAll);
   }
 
   // tombol "test notification" di Profile, buat ngecek/demo notif tanpa nunggu deadline
   Future<void> scheduleTestNotification(Duration after) async {
     await _ensureReady();
-    await _plugin.zonedSchedule(
-      _testNotificationId,
-      'CampusFlow reminder',
-      'Notifications are working — you will be reminded before deadlines.',
-      _asTz(DateTime.now().add(after)),
-      const NotificationDetails(
-        android: AndroidNotificationDetails('test', 'Test notifications'),
-        iOS: DarwinNotificationDetails(),
-      ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-    );
+    await _guard(
+        'zonedSchedule',
+        () => _plugin.zonedSchedule(
+              _testNotificationId,
+              'CampusFlow reminder',
+              'Notifications are working — you will be reminded before deadlines.',
+              _asTz(DateTime.now().add(after)),
+              const NotificationDetails(
+                android: AndroidNotificationDetails('test', 'Test notifications'),
+                iOS: DarwinNotificationDetails(),
+              ),
+              androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+              uiLocalNotificationDateInterpretation:
+                  UILocalNotificationDateInterpretation.absoluteTime,
+            ));
   }
 }
 
