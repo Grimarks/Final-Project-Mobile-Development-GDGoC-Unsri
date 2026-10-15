@@ -3,6 +3,7 @@
 | File | Isi |
 |---|---|
 | `qr-download-android.png` / `.svg` | QR code unduh APK Android. SVG untuk dicetak besar (tidak pecah) |
+| `qr-feedback-form.png` / `.svg` | QR code Google Form feedback pengunjung booth |
 
 QR mengarah ke link tetap:
 
