@@ -52,6 +52,28 @@ void main() {
     expect(adapter.calls, 2);
   });
 
+  test('gateway error 520 di Snap & Go -> diulang sekali', () async {
+    adapter.script = [_gateway, _ok];
+    final form = FormData.fromMap({
+      'image': MultipartFile.fromBytes(Uint8List.fromList([1, 2, 3]), filename: 'snap.jpg'),
+    });
+    final resp = await dio.post('/ai/snap/extract', data: form);
+    expect(resp.data, {'ok': true});
+    expect(adapter.calls, 2);
+    expect(adapter.bodies.last, contains('snap.jpg'));
+  });
+
+  test('gateway error di POST biasa -> gak diulang (takut dobel), pesan ramah', () async {
+    adapter.script = [_gateway, _ok];
+    try {
+      await dio.post('/tasks', data: {'title': 'x'});
+      fail('harusnya error');
+    } on DioException catch (e) {
+      expect(adapter.calls, 1);
+      expect(toApiException(e).message, 'Server sedang sibuk, coba lagi sebentar.');
+    }
+  });
+
   test('upload kena token expired -> refresh lalu diulang dengan body utuh', () async {
     adapter.script = [_unauthorized, _ok];
     adapter.refreshResponse = {'access_token': 'new-access', 'refresh_token': 'refresh'};
@@ -69,6 +91,7 @@ void main() {
 const _drop = 'drop';
 const _ok = 'ok';
 const _unauthorized = '401';
+const _gateway = '520';
 
 class _ScriptedAdapter implements HttpClientAdapter {
   List<String> script = [];
@@ -109,6 +132,8 @@ class _ScriptedAdapter implements HttpClientAdapter {
         throw DioException.connectionError(requestOptions: options, reason: 'reset by peer');
       case _unauthorized:
         return _json({'detail': 'expired'}, 401);
+      case _gateway:
+        return ResponseBody.fromString('error code: 520', 520);
       default:
         return _json({'ok': true}, 200);
     }

@@ -44,9 +44,25 @@ ApiException toApiException(DioException e) {
       'Tidak bisa terhubung ke server. Pastikan backend jalan dan API_BASE_URL benar.',
     );
   }
-  return ApiException(e.message ?? 'Terjadi kesalahan jaringan',
-      statusCode: e.response?.statusCode);
+  final code = e.response?.statusCode;
+  if (code != null && code >= 500) {
+    // 5xx tanpa detail = biasanya dari Render/Cloudflare (server bangun/restart),
+    // pesan bawaan Dio panjang & bahasa inggris, gak enak dibaca user
+    return ApiException('Server sedang sibuk, coba lagi sebentar.', statusCode: code);
+  }
+  if (e.type == DioExceptionType.receiveTimeout) {
+    return ApiException('Server terlalu lama merespons, coba lagi sebentar.');
+  }
+  return ApiException(e.message ?? 'Terjadi kesalahan jaringan', statusCode: code);
 }
+
+// error dari gateway Render/Cloudflare pas server bangun/restart, bukan dari app
+const _gatewayCodes = {502, 503, 504, 520, 521, 522, 523, 524};
+
+// kalo gateway error, request-nya bisa aja udah sempet nyampe app. yg diulang cuma
+// yg aman diulang: GET, sama Snap & Go yg cuma ngasih usulan (gak nyimpen apa2)
+bool _safeToRetryAfterGateway(RequestOptions r) =>
+    r.method == 'GET' || r.path.startsWith('/ai/snap/');
 
 final tokenStorageProvider = Provider<TokenStorage>((ref) => TokenStorage());
 
@@ -84,11 +100,14 @@ final apiClientProvider = Provider<Dio>((ref) {
       onError: (error, handler) async {
         // koneksi putus sesaat (server baru restart/bangun, koneksi lama diputus
         // server, sinyal kedip) -> coba ulang SEKALI diem2, user gak usah liat error.
-        // request-nya belom nyampe server, jadi aman diulang
+        // request-nya belom nyampe server, jadi aman diulang. gateway error (520 dkk)
+        // juga diulang, tapi cuma buat request yg aman diulang
         final request = error.requestOptions;
         final dropped = error.type == DioExceptionType.connectionError ||
             error.type == DioExceptionType.connectionTimeout;
-        if (dropped && request.extra[_retriedKey] != true) {
+        final gateway = _gatewayCodes.contains(error.response?.statusCode) &&
+            _safeToRetryAfterGateway(request);
+        if ((dropped || gateway) && request.extra[_retriedKey] != true) {
           await Future<void>.delayed(retryDelay);
           request.extra[_retriedKey] = true;
           // body multipart (foto/suara) cuma bisa dikirim sekali, mesti di-clone
