@@ -4,6 +4,9 @@
 |---|---|
 | `qr-download-android.png` / `.svg` | QR code unduh APK Android. SVG untuk dicetak besar (tidak pecah) |
 | `qr-feedback-form.png` / `.svg` | QR code Google Form feedback pengunjung booth |
+| `poster-download.pdf` / `poster-feedback.pdf` | Poster A4 siap cetak (hemat tinta: latar putih, garis hitam, aksen kuning). `.png` = pratinjau |
+| `poster/` | Sumber poster (HTML + CSS + QR SVG). Render ulang: Chrome → Print → A4, margin None, *Background graphics* dicentang |
+| `create_feedback_form.gs` | Google Apps Script yang membuat form feedback |
 
 QR mengarah ke link tetap:
 
